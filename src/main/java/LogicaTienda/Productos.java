@@ -1,6 +1,8 @@
 package LogicaTienda;
 
-public class Productos {
+import java.io.Serializable;
+
+public class Productos implements Serializable {
 
     private int idProducto;
     private String nombre;

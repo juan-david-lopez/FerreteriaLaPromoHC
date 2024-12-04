@@ -6,14 +6,13 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.text.Font?>
 
-
-<Pane fx:id="PanelPrincipal" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1">
+<Pane fx:id="PanelPrincipal" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.tiendaGUI.HelloController">
    <children>
       <ToolBar fx:id="PanelAbajo" layoutX="5.0" layoutY="332.0" prefHeight="40.0" prefWidth="590.0" style="-fx-background-color: #90B1DB;">
         <items>
-          <Button fx:id="BotonInvetario" mnemonicParsing="false" text="Inventario" />
-            <Button fx:id="BotonVentas" mnemonicParsing="false" text="Vender" />
-            <Button fx:id="BotonEstadisticas" mnemonicParsing="false" text="Estadisticas" />
+          <Button fx:id="BotonInvetario" mnemonicParsing="false" onAction="#PresionarBotonInventario" text="Inventario" />
+            <Button fx:id="BotonVentas" mnemonicParsing="false" onAction="#PresionarBotonVentas" text="Vender" />
+            <Button fx:id="BotonEstadisticas" mnemonicParsing="false" onAction="#PresionarBotonEstadisticas" text="Estadisticas" />
         </items>
       </ToolBar>
       <Label fx:id="panelArriba" alignment="CENTER" layoutX="14.0" layoutY="14.0" prefHeight="48.0" prefWidth="573.0" style="-fx-background-color: #90B1DB;" text="TIENDA CASTILLO " textOverrun="WORD_ELLIPSIS">
@@ -21,6 +20,6 @@
             <Font name="Castellar" size="20.0" />
          </font>
       </Label>
-      <Pane fx:id="ImagenDelMedio" cache="true" cacheHint="SPEED" layoutX="201.0" layoutY="100.0" prefHeight="200.0" prefWidth="200.0" style="-fx-background-image: istockphoto-1497187093-1024x1024;" />
+      <Pane fx:id="ImagenDelMedio" cache="true" cacheHint="SPEED" layoutX="201.0" layoutY="100.0" prefHeight="200.0" prefWidth="200.0" />
    </children>
 </Pane>
