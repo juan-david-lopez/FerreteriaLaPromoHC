@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.ArrayList;
 import LogicaTienda.DataSerializer;
 import LogicaTienda.Productos;
+import org.tiendaGUI.Controllers.HelloController;
 
 public class HelloApplication extends Application {
     private List<Productos> listaProductos;

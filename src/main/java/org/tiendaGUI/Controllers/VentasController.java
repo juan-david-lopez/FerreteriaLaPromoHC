@@ -1,4 +1,4 @@
-package org.tiendaGUI;
+package org.tiendaGUI.Controllers;
 
 public class VentasController {
 }

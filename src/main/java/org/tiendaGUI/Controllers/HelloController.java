@@ -1,4 +1,4 @@
-package org.tiendaGUI;
+package org.tiendaGUI.Controllers;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -20,7 +20,7 @@ public class HelloController {
     private Button BotonEstadisticas;
 
     @FXML
-    private Button BotonInvetario;
+    private Button BotonInventario;
 
     @FXML
     private Button BotonVentas;
@@ -56,7 +56,8 @@ public class HelloController {
 
     private void cambiarVentana(String fxmlFile, String title) {
         try {
-            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource(fxmlFile));
+            System.out.println("Cargando FXML: " + fxmlFile);
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/tiendaGUI/" + fxmlFile));
             Parent root = fxmlLoader.load();
             Stage stage = new Stage();
             stage.setTitle(title);
@@ -68,9 +69,8 @@ public class HelloController {
             e.printStackTrace();
         }
     }
-
     public void initialize() {
-        // Inicialización del controlador
+
     }
 
     public void setListaProductos(List<Productos> listaProductos) {
