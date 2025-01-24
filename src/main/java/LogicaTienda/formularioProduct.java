@@ -4,14 +4,21 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class formularioProduct extends JFrame {
-    private String producto;
-    public List<String> productos;
+
+    private List<Productos> productos;
+
+    public List<Productos> getProductos() {
+        return productos;
+    }
+
+    void setProductos(List<Productos> productos) {
+        this.productos = productos;
+    }
+
     private JTextField idProductoField;
     private JTextField nombreField;
     private JTextField precioField;
@@ -22,8 +29,11 @@ public class formularioProduct extends JFrame {
     public formularioProduct() {
         setTitle("Ingreso de Producto");
         setSize(400, 300);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(formularioProduct.HIDE_ON_CLOSE);
         setLocationRelativeTo(null);
+
+        // Initialize the productos list
+        productos = new ArrayList<>();
 
         // Crear panel y establecer layout
         JPanel panel = new JPanel(new GridLayout(6, 2, 10, 10));
@@ -68,23 +78,35 @@ public class formularioProduct extends JFrame {
         submitButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                producto="";
-                int idProducto = Integer.parseInt(idProductoField.getText());
-                String nombre = nombreField.getText();
-                double precio = Double.parseDouble(precioField.getText());
-                int cantidad = Integer.parseInt(cantidadField.getText());
-                int stock = Integer.parseInt(stockField.getText());
-                producto=idProducto+";"+nombre+";"+precio+";"+cantidad+";"+stock;
-                productos.add(producto);
-                // Procesar datos aquí
-                JOptionPane.showMessageDialog(null, "Datos ingresados:\n" +
-                        "ID Producto: " + idProducto + "\n" +
-                        "Nombre: " + nombre + "\n" +
-                        "Precio: " + precio + "\n" +
-                        "Cantidad: " + cantidad + "\n" +
-                        "Stock: " + stock);
+                try {
+                    String idProducto = idProductoField.getText();
+                    String nombre = nombreField.getText();
+                    double precio = Double.parseDouble(precioField.getText());
+                    int cantidad = Integer.parseInt(cantidadField.getText());
+                    int stock = Integer.parseInt(stockField.getText());
+                    String centinelaproducto = idProducto + ";" + nombre + ";" + precio + ";" + cantidad + ";" + stock;
+                    if (idProducto != null && nombre != null && precio > 0 && cantidad > 0 && stock > 0) {
+                        productos.add(ConvertirAobjeto(centinelaproducto));
+                    }
+                    JOptionPane.showMessageDialog(null, "Datos ingresados:\n" +
+                            "ID Producto: " + idProducto + "\n" +
+                            "Nombre: " + nombre + "\n" +
+                            "Precio: " + precio + "\n" +
+                            "Cantidad: " + cantidad + "\n" +
+                            "Stock: " + stock);
+
+                }catch (Exception ex){
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(null, ex.getMessage());
+                }
             }
         });
 
+    }
+
+    private Productos ConvertirAobjeto(String centinelaproducto) {
+        System.out.println(centinelaproducto);
+        Productos productosList = LogicaEstadistica.ConvertirAobjetoProducto(centinelaproducto);
+        return productosList;
     }
 }

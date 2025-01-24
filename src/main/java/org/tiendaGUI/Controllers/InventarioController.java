@@ -1,5 +1,7 @@
 package org.tiendaGUI.Controllers;
 
+import LogicaTienda.LogicaEstadistica;
+import LogicaTienda.Productos;
 import LogicaTienda.formularioProduct;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -12,9 +14,12 @@ import javafx.scene.control.TableView;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.util.List;
 import javax.swing.SwingUtilities;
 
 public class InventarioController {
+    private List<Productos> productosLocal;
+
     @FXML
     private Button btnVolver;
     @FXML
@@ -53,7 +58,9 @@ public class InventarioController {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                new formularioProduct().setVisible(true);
+                formularioProduct formularioActual = new formularioProduct();
+                formularioActual.setVisible(true);
+
             }
         });
     }

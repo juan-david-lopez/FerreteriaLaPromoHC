@@ -1,5 +1,6 @@
 package LogicaTienda;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalDouble;
 
@@ -46,5 +47,10 @@ public class LogicaEstadistica {
                 .mapToDouble(Productos::getPrecio)
                 .min()
                 .orElse(0.0);
+    }
+    public static Productos ConvertirAobjetoProducto(String productos){
+        String[] centinela = productos.split(";");
+        Productos productos1 = new Productos(centinela[0],centinela[1],Double.parseDouble(centinela[2]),Integer.parseInt(centinela[3]),Integer.parseInt(centinela[4]));
+        return productos1;
     }
 }

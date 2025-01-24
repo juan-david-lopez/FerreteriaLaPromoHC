@@ -4,12 +4,20 @@ import java.io.Serializable;
 
 public class Productos implements Serializable {
 
-    private int idProducto;
+    private String idProducto;
     private String nombre;
     private double precio;
     private int cantidad;
     private int stock;
-    public Productos(int idProducto, String nombre, String descripcion, int precio, int cantidad, int stock) {
+    public Productos(String idProducto, String nombre, String descripcion, double precio, int cantidad, int stock) {
+        this.idProducto = idProducto;
+        this.nombre = nombre;
+        this.precio = precio;
+        this.cantidad = cantidad;
+        this.stock = stock;
+    }
+
+    public Productos(String idProducto, String nombre, double precio, int cantidad, int stock) {
         this.idProducto = idProducto;
         this.nombre = nombre;
         this.precio = precio;
@@ -48,10 +56,10 @@ public class Productos implements Serializable {
     public void setStock(int stock) {
         this.stock = stock;
     }
-    public int getIdProducto() {
+    public String getIdProducto() {
         return idProducto;
     }
-    public void setIdProducto(int idProducto) {
+    public void setIdProducto(String idProducto) {
         this.idProducto = idProducto;
     }
     @Override
