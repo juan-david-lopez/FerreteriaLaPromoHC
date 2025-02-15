@@ -8,19 +8,19 @@
 
 <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="466.0" prefWidth="694.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.tiendaGUI.Controllers.InventarioController">
    <children>
-      <Button layoutX="106.0" layoutY="397.0" mnemonicParsing="false" text="Actualizar">
+      <Button fx:id="btnActualizar" layoutX="106.0" layoutY="397.0" mnemonicParsing="false" onAction="#PresionarBotonActualizar" text="Actualizar">
          <cursor>
             <Cursor fx:constant="OPEN_HAND" />
          </cursor>
       </Button>
-      <Button layoutX="188.0" layoutY="397.0" mnemonicParsing="false" text="Eliminar" />
+      <Button fx:id="btnEliminar" layoutX="188.0" layoutY="397.0" mnemonicParsing="false" onAction="#PresionarBotonEliminar" text="Eliminar" />
       <TableView fx:id="tablaNumero1" layoutX="40.0" layoutY="68.0" prefHeight="200.0" prefWidth="200.0">
         <columns>
           <TableColumn fx:id="ColumnaNumero1" prefWidth="91.19998168945312" sortType="DESCENDING" text="Nombre" />
           <TableColumn fx:id="ColumnaNumero2" prefWidth="79.20001220703125" sortType="DESCENDING" text="Valor" />
         </columns>
       </TableView>
-      <Button layoutX="32.0" layoutY="397.0" mnemonicParsing="false" onAction="#PresionarBotonNuevo" text="Nuevo" />
-      <Button layoutX="596.0" layoutY="397.0" mnemonicParsing="false" onAction="#volver" text="Volver" />
+      <Button fx:id="btnNuevo" layoutX="32.0" layoutY="397.0" mnemonicParsing="false" onAction="#PresionarBotonNuevo" text="Nuevo" />
+      <Button fx:id="btnVolver" layoutX="596.0" layoutY="397.0" mnemonicParsing="false" onAction="#volver" text="Volver" />
    </children>
 </Pane>

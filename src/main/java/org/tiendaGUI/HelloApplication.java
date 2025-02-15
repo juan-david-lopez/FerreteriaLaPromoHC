@@ -1,5 +1,6 @@
 package org.tiendaGUI;
 
+import LogicaTienda.formularioProduct;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -12,17 +13,20 @@ import java.util.ArrayList;
 import LogicaTienda.DataSerializer;
 import LogicaTienda.Productos;
 import org.tiendaGUI.Controllers.HelloController;
+import org.tiendaGUI.Controllers.InventarioController;
 
 public class HelloApplication extends Application {
     private List<Productos> listaProductos;
+    private formularioProduct product;
     private DataSerializer serializer;
 
     @Override
     public void start(Stage stage) throws IOException {
         serializer = new DataSerializer("productos.txt");
         listaProductos = serializer.deserializeData();
-
-        if (listaProductos == null) {
+        if(product != null){
+            listaProductos.addAll(product.getProductos());
+        } else if (listaProductos == null) {
             listaProductos = new ArrayList<>();
         }
 

@@ -36,7 +36,7 @@ public class DataSerializer {
             System.out.println("Datos deserializados exitosamente desde " + filePath);
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
-            System.out.println("no se pudo serializar los datos correctamente");
+            System.out.println("no se pudo deserializar los datos correctamente");
         }
         return listaProductos;
     }

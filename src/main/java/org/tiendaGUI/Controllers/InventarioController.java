@@ -18,12 +18,15 @@ import java.util.List;
 import javax.swing.SwingUtilities;
 
 public class InventarioController {
-    private List<Productos> productosLocal;
-
+    private List<Productos> productosLocales;
+    @FXML
+    private Button btnNuevo;
     @FXML
     private Button btnVolver;
     @FXML
-    private Button btnNuevo;
+    private Button btnEliminar;
+    @FXML
+    private Button btnActualizar;
 
     @FXML
     private TableColumn<?, ?> ColumnaNumero1;
@@ -60,8 +63,36 @@ public class InventarioController {
             public void run() {
                 formularioProduct formularioActual = new formularioProduct();
                 formularioActual.setVisible(true);
-
+                productosLocales=formularioActual.getProductos();
             }
         });
+    }
+    @FXML
+    private void PresionarBotonEliminar(ActionEvent event) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                formularioProduct formularioActual = new formularioProduct(1,productosLocales);
+                formularioActual.setVisible(true);
+            }
+        });
+    }
+    @FXML
+    private void PresionarBotonActualizar(ActionEvent event){
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                formularioProduct formularioActual = new formularioProduct(productosLocales);
+                formularioActual.setVisible(true);
+            }
+        });
+    }
+
+    public List<Productos> getProductos() {
+        return productosLocales;
+    }
+
+    public void setProductos(List<Productos> productos) {
+        this.productosLocales = productos;
     }
 }
