@@ -1,258 +1,106 @@
 package LogicaTienda;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import javafx.geometry.Insets;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.GridPane;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.collections.ObservableList;
 
-public class formularioProduct extends JFrame {
+public class formularioProduct extends Stage {
+    private TextField idProductoField, nombreField, precioField, cantidadField, stockField;
+    private Button submitButton;
+    private ObservableList<Productos> productos;
+    private DataSerializer dataSerializer;  // Serializador JSON
 
-    private List<Productos> productos= new ArrayList<>();
-
-    public formularioProduct(List<Productos> productos) {
+    public formularioProduct(String titulo, ObservableList<Productos> productos, boolean esEliminacion, DataSerializer dataSerializer) {
         this.productos = productos;
-        setTitle("Actualizacion de Producto");
-        setSize(400, 300);
-        setDefaultCloseOperation(formularioProduct.HIDE_ON_CLOSE);
-        setLocationRelativeTo(null);
+        this.dataSerializer = dataSerializer;
+        setTitle(titulo);
+        initModality(Modality.APPLICATION_MODAL);  // Ventana modal
 
-        // Crear panel y establecer layout
-        JPanel panel = new JPanel(new GridLayout(6, 2, 10, 10));
+        GridPane grid = new GridPane();
+        grid.setPadding(new Insets(10));
+        grid.setHgap(10);
+        grid.setVgap(10);
 
-        // Crear etiquetas y campos de texto
-        JLabel idProductoLabel = new JLabel("ID Producto:");
-        idProductoField = new JTextField();
+        idProductoField = new TextField();
+        nombreField = new TextField();
+        precioField = new TextField();
+        cantidadField = new TextField();
+        stockField = new TextField();
 
-        JLabel nombreLabel = new JLabel("Nombre:");
-        nombreField = new JTextField();
+        grid.add(new Label("ID Producto:"), 0, 0);
+        grid.add(idProductoField, 1, 0);
+        grid.add(new Label("Nombre:"), 0, 1);
+        grid.add(nombreField, 1, 1);
 
-        JLabel precioLabel = new JLabel("Precio:");
-        precioField = new JTextField();
+        if (!esEliminacion) {
+            grid.add(new Label("Precio:"), 0, 2);
+            grid.add(precioField, 1, 2);
+            grid.add(new Label("Cantidad:"), 0, 3);
+            grid.add(cantidadField, 1, 3);
+            grid.add(new Label("Stock:"), 0, 4);
+            grid.add(stockField, 1, 4);
+        }
 
-        JLabel cantidadLabel = new JLabel("Cantidad:");
-        cantidadField = new JTextField();
+        submitButton = new Button(esEliminacion ? "Eliminar" : "Guardar");
+        grid.add(submitButton, 1, 5);
 
-        JLabel stockLabel = new JLabel("Stock:");
-        stockField = new JTextField();
-
-        // Crear botón de envío
-        submitButton = new JButton("Enviar");
-
-        // Agregar componentes al panel
-        panel.add(idProductoLabel);
-        panel.add(idProductoField);
-        panel.add(nombreLabel);
-        panel.add(nombreField);
-        panel.add(precioLabel);
-        panel.add(precioField);
-        panel.add(cantidadLabel);
-        panel.add(cantidadField);
-        panel.add(stockLabel);
-        panel.add(stockField);
-        panel.add(new JLabel()); // Espacio vacío
-        panel.add(submitButton);
-
-        // Agregar panel a la ventana
-        add(panel);
-
-        // Agregar acción al botón de envío
-        submitButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    String idProducto = idProductoField.getText();
-                    String nombre = nombreField.getText();
-                    JOptionPane.showMessageDialog(null, "Datos ingresados:\n" +
-                            "ID Producto: " + idProducto + "\n" +
-                            "Nombre: " + nombre + "\n");
-                    double precio = Double.parseDouble(precioField.getText());
-                    int cantidad = Integer.parseInt(cantidadField.getText());
-                    int stock = Integer.parseInt(stockField.getText());
-                    List<Productos> listaTemp = getProductos();
-                    Iterator<Productos> iterator = listaTemp.iterator();
-                    if(listaTemp.size()>0) {
-                        while (iterator.hasNext()) {
-                            Productos lisPro = iterator.next();
-                            if (lisPro.getNombre().equals(nombre) && lisPro.getIdProducto().equals(idProducto)) {
-                                lisPro.setCantidad(cantidad);
-                                lisPro.setStock(stock);
-                                lisPro.setPrecio(precio);
-                                JOptionPane.showMessageDialog(null, "Se modifico:\n" +
-                                        lisPro.toString());
-                            }
-                        }
-                    }else{
-                        System.err.println("Lista vacia");
-                    }
-                }catch (Exception ex){
-                    ex.printStackTrace();
-                    JOptionPane.showMessageDialog(null, ex.getMessage());
-                }
+        submitButton.setOnAction(e -> {
+            if (esEliminacion) {
+                eliminarProducto();
+            } else {
+                actualizarOAgregarProducto();
             }
-        });
-    }
-
-    public List<Productos> getProductos() {
-        return productos;
-    }
-
-    void setProductos(List<Productos> productos) {
-        this.productos = productos;
-    }
-
-    private JTextField idProductoField;
-    private JTextField nombreField;
-    private JTextField precioField;
-    private JTextField cantidadField;
-    private JTextField stockField;
-    private JButton submitButton;
-
-    public formularioProduct() {
-        this.productos=productos;
-        setTitle("Ingreso de Producto");
-        setSize(400, 300);
-        setDefaultCloseOperation(formularioProduct.HIDE_ON_CLOSE);
-        setLocationRelativeTo(null);
-
-        // Crear panel y establecer layout
-        JPanel panel = new JPanel(new GridLayout(6, 2, 10, 10));
-
-        // Crear etiquetas y campos de texto
-        JLabel idProductoLabel = new JLabel("ID Producto:");
-        idProductoField = new JTextField();
-
-        JLabel nombreLabel = new JLabel("Nombre:");
-        nombreField = new JTextField();
-
-        JLabel precioLabel = new JLabel("Precio:");
-        precioField = new JTextField();
-
-        JLabel cantidadLabel = new JLabel("Cantidad:");
-        cantidadField = new JTextField();
-
-        JLabel stockLabel = new JLabel("Stock:");
-        stockField = new JTextField();
-
-        // Crear botón de envío
-        submitButton = new JButton("Enviar");
-
-        // Agregar componentes al panel
-        panel.add(idProductoLabel);
-        panel.add(idProductoField);
-        panel.add(nombreLabel);
-        panel.add(nombreField);
-        panel.add(precioLabel);
-        panel.add(precioField);
-        panel.add(cantidadLabel);
-        panel.add(cantidadField);
-        panel.add(stockLabel);
-        panel.add(stockField);
-        panel.add(new JLabel()); // Espacio vacío
-        panel.add(submitButton);
-
-        // Agregar panel a la ventana
-        add(panel);
-
-        // Agregar acción al botón de envío
-        submitButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    String idProducto = idProductoField.getText();
-                    String nombre = nombreField.getText();
-                    double precio = Double.parseDouble(precioField.getText());
-                    int cantidad = Integer.parseInt(cantidadField.getText());
-                    int stock = Integer.parseInt(stockField.getText());
-                    String centinelaproducto = idProducto + ";" + nombre + ";" + precio + ";" + cantidad + ";" + stock;
-                    if (idProducto != null && nombre != null && precio > 0 && cantidad > 0 && stock > 0) {
-                        productos.add(ConvertirAobjeto(centinelaproducto));
-                    }
-                    JOptionPane.showMessageDialog(null, "Datos ingresados:\n" +
-                            "ID Producto: " + idProducto + "\n" +
-                            "Nombre: " + nombre + "\n" +
-                            "Precio: " + precio + "\n" +
-                            "Cantidad: " + cantidad + "\n" +
-                            "Stock: " + stock);
-
-                }catch (Exception ex){
-                    ex.printStackTrace();
-                    JOptionPane.showMessageDialog(null, ex.getMessage());
-                }
-            }
+            dataSerializer.serializeData(productos);  // 🔥 Guarda cambios en JSON
+            close();  // Cierra la ventana después de la acción
         });
 
+        Scene scene = new Scene(grid, 350, 250);
+        setScene(scene);
     }
-    public formularioProduct(int i,List<Productos> productos) {
-        this.productos=productos;
-        setTitle("Eliminación de Producto");
-        setSize(400, 400);
-        setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-        setLocationRelativeTo(null);
 
-        // Crear panel y establecer layout
-        JPanel panel = new JPanel(new GridLayout(6, 2, 10, 10));
+    private void actualizarOAgregarProducto() {
+        try {
+            String idProducto = idProductoField.getText().trim();
+            String nombre = nombreField.getText().trim();
+            double precio = Double.parseDouble(precioField.getText().trim());
+            int cantidad = Integer.parseInt(cantidadField.getText().trim());
+            int stock = Integer.parseInt(stockField.getText().trim());
 
-        // Crear etiquetas y campos de texto
-        JLabel idProductoLabel = new JLabel("ID Producto:");
-        idProductoField = new JTextField();
-
-        JLabel nombreLabel = new JLabel("Nombre:");
-        nombreField = new JTextField();
-
-        // Crear botón de envío
-        submitButton = new JButton("Enviar");
-
-        // Agregar componentes al panel
-        panel.add(idProductoLabel);
-        panel.add(idProductoField);
-        panel.add(nombreLabel);
-        panel.add(nombreField);
-        panel.add(new JLabel()); // Espacio vacío
-        panel.add(submitButton);
-
-        // Agregar panel a la ventana
-        add(panel);
-
-        submitButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    String idProducto = idProductoField.getText();
-                    String nombre = nombreField.getText();
-                    JOptionPane.showMessageDialog(null, "Datos ingresados:\n" +
-                            "ID Producto: " + idProducto + "\n" +
-                            "Nombre: " + nombre + "\n");
-
-                    // Obtener la lista de productos (asegúrate de implementar este método)
-                    List<Productos> listaTemp = getProductos();
-                    Iterator<Productos> iterator = listaTemp.iterator();
-                    if(listaTemp.size()>0){
-                        while (iterator.hasNext()) {
-                            Productos lisPro = iterator.next();
-                            if (lisPro.getNombre().equals(nombre) && lisPro.getIdProducto().equals(idProducto)) {
-                                iterator.remove();
-                                JOptionPane.showMessageDialog(null, "Se eliminó a: " + lisPro.getNombre() + "," + lisPro.getIdProducto());
-                            } else {
-                                System.err.println("No se encontró coincidencia.");
-                            }
-                        }
-                    }
-                    else{
-                        JOptionPane.showMessageDialog(null, "Lista Vacia");
-                    }
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(null, ex.getMessage());
+            boolean encontrado = false;
+            for (Productos producto : productos) {
+                if (producto.getIdProducto().equals(idProducto) && producto.getNombre().equals(nombre)) {
+                    producto.setCantidad(cantidad);
+                    producto.setStock(stock);
+                    producto.setPrecio(precio);
+                    encontrado = true;
+                    break;
                 }
             }
-        });
+
+            if (!encontrado) {
+                productos.add(new Productos(idProducto, nombre, precio, cantidad, stock));
+            }
+
+        } catch (NumberFormatException ex) {
+            mostrarAlerta("Error", "Datos inválidos. Verifica los valores numéricos.");
+        }
     }
 
-    private Productos ConvertirAobjeto(String centinelaproducto) {
-        System.out.println(centinelaproducto);
-        Productos productosList = LogicaEstadistica.ConvertirAobjetoProducto(centinelaproducto);
-        return productosList;
+    private void eliminarProducto() {
+        String idProducto = idProductoField.getText().trim();
+        String nombre = nombreField.getText().trim();
+        productos.removeIf(p -> p.getIdProducto().equals(idProducto) && p.getNombre().equals(nombre));
+    }
+
+    private void mostrarAlerta(String titulo, String mensaje) {
+        Alert alerta = new Alert(Alert.AlertType.ERROR);
+        alerta.setTitle(titulo);
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensaje);
+        alerta.showAndWait();
     }
 }

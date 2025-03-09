@@ -1,43 +1,49 @@
 package LogicaTienda;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import javafx.collections.ObservableList;
+
+import java.io.*;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DataSerializer {
-
     private String filePath;
+    private Gson gson = new Gson();
 
     public DataSerializer(String filePath) {
         this.filePath = filePath;
     }
 
-    // Método para serializar los datos en un archivo .txt
-    public void serializeData(List<Productos> listaProductos) {
-        try (FileOutputStream fileOut = new FileOutputStream(filePath);
-             ObjectOutputStream out = new ObjectOutputStream(fileOut)) {
-            out.writeObject(listaProductos);
-            System.out.println("Datos serializados exitosamente en " + filePath);
+    public void serializeData(ObservableList<Productos> productos) {
+        System.out.println("🔎 Guardando productos: " + productos);
+
+        try (FileWriter writer = new FileWriter(filePath, false)) { // false -> sobrescribe el archivo
+            gson.toJson(new ArrayList<>(productos), writer); // Convertir a ArrayList antes de guardar
+            System.out.println("✅ Productos guardados en JSON correctamente.");
         } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println(" no se pudo serializar los datos correctamente");
+            System.out.println("❌ Error al guardar productos: " + e.getMessage());
         }
     }
 
-    // Método para deserializar los datos desde un archivo .txt
+
     public List<Productos> deserializeData() {
-        List<Productos> listaProductos = null;
-        try (FileInputStream fileIn = new FileInputStream(filePath);
-             ObjectInputStream in = new ObjectInputStream(fileIn)) {
-            listaProductos = (List<Productos>) in.readObject();
-            System.out.println("Datos deserializados exitosamente desde " + filePath);
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-            System.out.println("no se pudo deserializar los datos correctamente");
+        File file = new File(filePath);
+        if (!file.exists()) {
+            System.out.println("⚠️ Archivo JSON no encontrado. Creando una lista vacía.");
+            return new ArrayList<>();  // Retorna una lista vacía
         }
-        return listaProductos;
+
+        try (Reader reader = new FileReader(filePath)) {
+            List<Productos> productos = gson.fromJson(reader, new TypeToken<List<Productos>>() {}.getType());
+            return productos != null ? productos : new ArrayList<>(); // Evita devolver null
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("❌ Error al leer el archivo JSON.");
+            return new ArrayList<>();
+        }
     }
+
 }
