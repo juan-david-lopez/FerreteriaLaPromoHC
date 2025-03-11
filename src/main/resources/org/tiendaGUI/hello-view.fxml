@@ -10,9 +10,9 @@
    <children>
       <ToolBar fx:id="PanelAbajo" layoutX="5.0" layoutY="332.0" prefHeight="40.0" prefWidth="590.0" style="-fx-background-color: #90B1DB;">
         <items>
-          <Button fx:id="BotonInvetario" mnemonicParsing="false" onAction="#PresionarBotonInventario" text="Inventario" />
-            <Button fx:id="BotonVentas" mnemonicParsing="false" onAction="#PresionarBotonVentas" text="Vender" />
-            <Button fx:id="BotonEstadisticas" mnemonicParsing="false" onAction="#PresionarBotonEstadisticas" text="Estadisticas" />
+          <Button fx:id="BotonInvetario" mnemonicParsing="false" onAction="#presionarBotonInventario" text="Inventario" />
+            <Button fx:id="BotonVentas" mnemonicParsing="false" onAction="#presionarBotonVentas" text="Vender" />
+            <Button fx:id="BotonEstadisticas" mnemonicParsing="false" onAction="#presionarBotonEstadisticas" text="Estadisticas" />
         </items>
       </ToolBar>
       <Label fx:id="panelArriba" alignment="CENTER" layoutX="14.0" layoutY="14.0" prefHeight="48.0" prefWidth="573.0" style="-fx-background-color: #90B1DB;" text="TIENDA CASTILLO " textOverrun="WORD_ELLIPSIS">

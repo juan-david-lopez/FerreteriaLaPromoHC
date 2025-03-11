@@ -4,33 +4,31 @@ import LogicaTienda.DataSerializer;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import javafx.application.Platform;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.ArrayList;
 import LogicaTienda.Productos;
 import org.tiendaGUI.Controllers.HelloController;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+import java.io.IOException;
 
 public class HelloApplication extends Application {
-    private ObservableList<Productos> listaProductos;  // Cambio de List a ObservableList
+    private ObservableList<Productos> listaProductos;
     private DataSerializer serializer;
 
     @Override
     public void start(Stage stage) throws IOException {
         serializer = new DataSerializer("productos.json");
 
-        // Intentar deserializar, si falla, inicializar con una lista vacía
-        listaProductos = FXCollections.observableArrayList(serializer.deserializeData());
-        if (listaProductos == null) {
-            listaProductos = FXCollections.observableArrayList();
+        // Deserializar los datos UNA sola vez
+        java.util.List<Productos> productosCargados = serializer.deserializeData();
+
+        if (productosCargados == null) {
+            productosCargados = new java.util.ArrayList<>();  // Evita valores nulos
         }
+
+        listaProductos = FXCollections.observableArrayList(productosCargados);
 
         // Cargar la vista
         FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("hello-view.fxml"));
@@ -41,21 +39,23 @@ public class HelloApplication extends Application {
 
         // Pasar la lista de productos al controlador
         HelloController controller = fxmlLoader.getController();
-        controller.setListaProductos(listaProductos);  // Ahora recibe ObservableList
+        controller.bindListaProductos(listaProductos);
 
-        // Guardar datos al cerrar la aplicación
+        // Guardar datos solo si la lista tiene productos
         stage.setOnCloseRequest(event -> {
-            try {
-                serializer.serializeData(listaProductos);
-                System.out.println("✅ Datos guardados correctamente en productos.json");
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.err.println("❌ Error al guardar los datos antes de cerrar.");
+            if (!listaProductos.isEmpty()) {
+                try {
+                    serializer.serializeData(listaProductos);
+                    System.out.println("✅ Datos guardados correctamente en productos.json");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    System.err.println("❌ Error al guardar los datos antes de cerrar.");
+                }
+            } else {
+                System.out.println("⚠️ No hay productos que guardar.");
             }
-            Platform.exit();
         });
     }
-
     public static void main(String[] args) {
         launch();
     }

@@ -1,5 +1,7 @@
 package org.tiendaGUI.Controllers;
 
+import LogicaTienda.DataSerializer;
+import LogicaTienda.Productos;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -15,83 +17,69 @@ import javafx.scene.control.ToolBar;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 import java.io.IOException;
-import java.util.List;
-import LogicaTienda.Productos;
 
 public class HelloController {
     private ObservableList<Productos> listaProductos = FXCollections.observableArrayList();
-    @FXML
-    private Button BotonEstadisticas;
+    private DataSerializer dataSerializer;
 
     @FXML
-    private Button BotonInventario;
+    private Button botonEstadisticas, botonInventario, botonVentas;
 
     @FXML
-    private Button BotonVentas;
+    private Pane imagenDelMedio, panelPrincipal;
 
     @FXML
-    private Pane ImagenDelMedio;
-
-    @FXML
-    private ToolBar PanelAbajo;
-
-    @FXML
-    private Pane PanelPrincipal;
+    private ToolBar panelAbajo;
 
     @FXML
     private Label panelArriba;
 
+    @FXML
+    public void initialize() {
+        System.out.println("📦 HelloController inicializado.");
+    }
+
+    public void bindListaProductos(ObservableList<Productos> listaProductos) {
+        this.listaProductos.setAll(listaProductos);
+        System.out.println("📦 Lista de productos enlazada en HelloController: " + listaProductos.size());
+    }
 
     @FXML
-    private void PresionarBotonInventario(ActionEvent event) {
+    private void presionarBotonInventario(ActionEvent event) {
+        cambiarVentana("inventario-view.fxml", "Inventario", event);
+    }
+
+    @FXML
+    private void presionarBotonEstadisticas(ActionEvent event) {
+        cambiarVentana("estadisticas-view.fxml", "Estadísticas", event);
+    }
+
+    @FXML
+    private void presionarBotonVentas(ActionEvent event) {
+        cambiarVentana("ventas-view.fxml", "Ventas", event);
+    }
+
+    private void cambiarVentana(String fxmlFile, String title, ActionEvent event) {
         try {
-            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/tiendaGUI/inventario-view.fxml"));
+            System.out.println("🔄 Cargando: " + fxmlFile);
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/tiendaGUI/" + fxmlFile));
             Parent root = fxmlLoader.load();
+
+            // Verificar si es el controlador de Inventario y pasarle la lista de productos
+            Object controller = fxmlLoader.getController();
+            if (controller instanceof InventarioController inventarioController) {
+                inventarioController.bindListaProductos(listaProductos);
+            }
 
             // Obtener la ventana actual y cambiar la escena
             Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root));
-            stage.setTitle("Inventario");  // Opcionalmente, cambia el título
+            stage.setTitle(title);
             stage.show();
         } catch (IOException e) {
-            e.printStackTrace();
-            System.err.println("Error: No se pudo cargar inventario-view.fxml");
+            e.printStackTrace(); // Para depuración
+            mostrarError("Error al cargar la vista", "No se pudo cargar: " + fxmlFile);
         }
-    }
-
-
-    @FXML
-    private void PresionarBotonEstadisticas() {
-        cambiarVentana("estadisticas-view.fxml", "Estadísticas");
-    }
-
-    @FXML
-    private void PresionarBotonVentas() {
-        cambiarVentana("ventas-view.fxml", "Ventas");
-    }
-
-    private void cambiarVentana(String fxmlFile, String title) {
-        Platform.runLater(() -> {
-            try {
-                System.out.println("Cargando FXML: " + fxmlFile);
-                FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/tiendaGUI/" + fxmlFile));
-                Parent root = fxmlLoader.load();
-
-                // Crear nueva ventana
-                Stage stage = new Stage();
-                stage.setTitle(title);
-                stage.setScene(new Scene(root));
-                stage.show();
-
-                // Cerrar la ventana actual solo si la nueva ventana se abre con éxito
-                if (PanelPrincipal != null && PanelPrincipal.getScene() != null) {
-                    Stage currentStage = (Stage) PanelPrincipal.getScene().getWindow();
-                    currentStage.close();
-                }
-            } catch (IOException e) {
-                mostrarError("Error al cargar la vista", "No se pudo cargar el archivo: " + fxmlFile);
-            }
-        });
     }
 
     private void mostrarError(String titulo, String mensaje) {
@@ -100,14 +88,5 @@ public class HelloController {
         alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();
-    }
-
-    public void initialize() {
-        // Puedes agregar inicializaciones si es necesario
-    }
-
-
-    public void setListaProductos(ObservableList<Productos> listaProductos) {
-        this.listaProductos.setAll(listaProductos);
     }
 }
