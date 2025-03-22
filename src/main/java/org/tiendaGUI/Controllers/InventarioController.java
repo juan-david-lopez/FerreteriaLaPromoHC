@@ -1,10 +1,9 @@
 package org.tiendaGUI.Controllers;
 
 import LogicaTienda.DataSerializer;
-import LogicaTienda.Productos;
+import LogicaTienda.DataModel;
+import LogicaTienda.Model.Productos;
 import LogicaTienda.formularioProduct;
-import javafx.application.Platform;
-import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -18,11 +17,9 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.List;
 import java.util.ResourceBundle;
 
 public class InventarioController implements Initializable {
-    private ObservableList<Productos> productosLocales = FXCollections.observableArrayList();
     private final DataSerializer dataSerializer = new DataSerializer("productos.json");
 
     @FXML private Button btnNuevo, btnVolver, btnEliminar, btnActualizar;
@@ -38,52 +35,49 @@ public class InventarioController implements Initializable {
     }
 
     @FXML
-    private void PresionarBotonNuevo(ActionEvent event) {
-        Platform.runLater(() -> {
-            new formularioProduct("Nuevo Producto", productosLocales, false, dataSerializer, null).showAndWait();
-            actualizarTabla();
-        });
+    private void presionarBotonNuevo(ActionEvent event) {
+        // Usa la lista global para el formulario
+        new formularioProduct("Nuevo Producto", DataModel.getProductos(), false, dataSerializer, null)
+                .showAndWait();
+        actualizarTabla();
     }
 
     @FXML
-    private void PresionarBotonEliminar(ActionEvent event) {
+    private void presionarBotonEliminar(ActionEvent event) {
         Productos productoSeleccionado = tablaNumero1.getSelectionModel().getSelectedItem();
-
         if (productoSeleccionado == null) {
             mostrarAlerta("Error", "No se seleccionó ningún producto para eliminar.");
             return;
         }
+        System.out.println("📂 Antes de eliminar: " + DataModel.getProductos());
+        DataModel.getProductos().remove(productoSeleccionado);
+        System.out.println("📂 Después de eliminar: " + DataModel.getProductos());
 
-        System.out.println("📂 Antes de eliminar: " + productosLocales);
-        productosLocales.remove(productoSeleccionado);
-        System.out.println("📂 Después de eliminar: " + productosLocales);
-
-        // Si la lista está vacía, guardamos un JSON vacío para evitar que los productos reaparezcan
-        dataSerializer.serializeData(productosLocales);
+        dataSerializer.serializeData(DataModel.getProductos());
         System.out.println("✅ Datos guardados correctamente en productos.json");
 
         actualizarTabla();
         System.out.println("✅ Producto eliminado correctamente.");
     }
 
-
     @FXML
-    private void PresionarBotonActualizar(ActionEvent event) {
+    private void presionarBotonActualizar(ActionEvent event) {
         Productos productoSeleccionado = tablaNumero1.getSelectionModel().getSelectedItem();
         if (productoSeleccionado == null) {
-            mostrarAlerta("Error", "No se seleccionó ningún producto para actualizar.");
+            mostrarAlerta("Error", "No se seleccionó ningún producto para actualizar.", Alert.AlertType.ERROR);
             return;
         }
-
-        Platform.runLater(() -> {
-            new formularioProduct("Actualizar Producto", productosLocales, false, dataSerializer, productoSeleccionado)
-                    .showAndWait();
-            actualizarTabla();
-        });
+        // Abre el formulario para actualizar el producto seleccionado
+        new formularioProduct("Actualizar Producto", DataModel.getProductos(), false, dataSerializer, productoSeleccionado)
+                .showAndWait();
+        actualizarTabla();
     }
 
+    /**
+     * Actualiza la tabla usando la lista global (sin recargar del JSON)
+     */
     private void actualizarTabla() {
-        productosLocales.setAll(dataSerializer.deserializeData());
+        tablaNumero1.setItems(DataModel.getProductos());
         tablaNumero1.refresh();
     }
 
@@ -94,27 +88,23 @@ public class InventarioController implements Initializable {
         columnaCantidad.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
         columnaId.setCellValueFactory(new PropertyValueFactory<>("idProducto"));
 
-        cargarProductosDesdeJSON();
-    }
-
-    private void cargarProductosDesdeJSON() {
-        List<Productos> productosCargados = dataSerializer.deserializeData();
-        if (productosCargados != null) {
-            productosLocales.setAll(productosCargados);
-        }
-        tablaNumero1.setItems(productosLocales);
+        // Asigna directamente la lista global ya cargada en HelloController
+        tablaNumero1.setItems(DataModel.getProductos());
+        tablaNumero1.refresh();
     }
 
     protected void cambiarVentana(ActionEvent event, String fxmlFile, String title) {
         try {
             FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/tiendaGUI/" + fxmlFile));
             Parent root = fxmlLoader.load();
+
             Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root));
             stage.setTitle(title);
             stage.show();
         } catch (IOException e) {
-            mostrarAlerta("Error", "No se pudo cargar la vista: " + fxmlFile);
+            e.printStackTrace();
+            mostrarAlerta("Error", "No se pudo cargar la vista: " + fxmlFile + "\nDetalles: " + e.getMessage());
         }
     }
 
@@ -129,9 +119,10 @@ public class InventarioController implements Initializable {
         alerta.setContentText(mensaje);
         alerta.showAndWait();
     }
+
+    // Este método es útil si en algún momento necesitas inyectar la lista global a este controlador.
     public void bindListaProductos(ObservableList<Productos> productos) {
-        this.productosLocales.setAll(productos);
-        tablaNumero1.setItems(productosLocales);
-        System.out.println("📦 Productos cargados en InventarioController: " + productosLocales.size());
+        tablaNumero1.setItems(productos);
+        System.out.println("📦 Productos cargados en InventarioController: " + productos.size());
     }
 }

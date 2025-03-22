@@ -30,13 +30,13 @@
       </Pane>
       <ToolBar layoutX="25.0" layoutY="397.0" prefHeight="40.0" prefWidth="632.0" style="-fx-background-color: #90B1DB;">
          <items>
-            <Button fx:id="btnNuevo" mnemonicParsing="false" onAction="#PresionarBotonNuevo" text="Nuevo" />
-            <Button fx:id="btnActualizar" mnemonicParsing="false" onAction="#PresionarBotonActualizar" text="Actualizar">
+            <Button fx:id="btnNuevo" mnemonicParsing="false" onAction="#presionarBotonNuevo" text="Nuevo" />
+            <Button fx:id="btnActualizar" mnemonicParsing="false" onAction="#presionarBotonActualizar" text="Actualizar">
                <cursor>
                   <Cursor fx:constant="OPEN_HAND" />
                </cursor>
             </Button>
-            <Button fx:id="btnEliminar" mnemonicParsing="false" onAction="#PresionarBotonEliminar" text="Eliminar" />
+            <Button fx:id="btnEliminar" mnemonicParsing="false" onAction="#presionarBotonEliminar" text="Eliminar" />
             <Button fx:id="btnVolver" mnemonicParsing="false" onAction="#volver" text="Volver" />
          </items>
       </ToolBar>

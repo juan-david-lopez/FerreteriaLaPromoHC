@@ -1,5 +1,7 @@
 package LogicaTienda;
 
+import LogicaTienda.Model.Productos;
+
 import java.util.ArrayList;
 import java.util.List;
 

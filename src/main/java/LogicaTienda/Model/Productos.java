@@ -1,4 +1,4 @@
-package LogicaTienda;
+package LogicaTienda.Model;
 
 import java.io.Serializable;
 

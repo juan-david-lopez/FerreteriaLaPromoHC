@@ -6,13 +6,15 @@ module org.example.tiendacasa {
     exports org.tiendaGUI;
     requires org.controlsfx.controls;
     requires java.desktop;
-    requires java.base; // Este normalmente no es necesario, pero lo dejo por claridad
-    requires com.google.gson; // Agrega esto para permitir el uso de Gson
-
-    // Permite que Gson acceda a las clases en LogicaTienda
+    // Este normalmente no es necesario, pero lo dejo por claridad
+    requires com.google.gson;
+    requires java.logging;
+    requires static lombok;
     exports LogicaTienda;
     exports org.tiendaGUI.Controllers;
     opens org.tiendaGUI.Controllers to javafx.fxml;
     opens org.tiendaGUI to javafx.fxml;
+    exports LogicaTienda.Model;
+    opens LogicaTienda.Model to com.google.gson, javafx.base;
 
 }

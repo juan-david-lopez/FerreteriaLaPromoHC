@@ -1,5 +1,6 @@
 package LogicaTienda;
 
+import LogicaTienda.Model.Productos;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;

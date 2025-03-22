@@ -28,10 +28,10 @@
             </TableView>
             <ToolBar prefHeight="40.0" prefWidth="568.0" style="-fx-background-color: #90B1DB;">
               <items>
-                <Button fx:id="BotonVender" mnemonicParsing="false" onAction="#botonVender" text="Vender" />
+                <Button fx:id="BotonVender" mnemonicParsing="false" onAction="#btnVenderAction" text="Vender" />
                   <Button fx:id="BtonActualizar" mnemonicParsing="false" onAction="#actualizarTabla" text="Actualizar" />
                   <Button mnemonicParsing="false" text="Ir al carrito" />
-                  <Button fx:id="BtnVolver" mnemonicParsing="false" onAction="#volver" text="Volver" />
+                  <Button fx:id="BtnVolver" mnemonicParsing="false" onAction="#btnVolverAction" text="Volver" />
               </items>
             </ToolBar>
          </children>

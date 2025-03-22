@@ -1,5 +1,6 @@
 package LogicaTienda;
 
+import LogicaTienda.Model.Productos;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -8,8 +9,6 @@ import javafx.collections.ObservableList;
 
 import java.io.*;
 import java.lang.reflect.Type;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
 
 public class DataSerializer {
@@ -22,6 +21,7 @@ public class DataSerializer {
     }
 
     public void serializeData(ObservableList<Productos> productos) {
+        System.out.println("Guardando productos: " + productos); // Debugging
         if (productos == null || productos.isEmpty()) {
             System.out.println("⚠️ No hay productos que guardar. Se guardará un JSON vacío.");
             try (Writer writer = new FileWriter(filePath)) {
@@ -39,6 +39,7 @@ public class DataSerializer {
             System.err.println("❌ Error al guardar productos en JSON: " + e.getMessage());
         }
     }
+
 
 
     public ObservableList<Productos> deserializeData() {

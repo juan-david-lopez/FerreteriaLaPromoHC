@@ -6,20 +6,23 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.text.Font?>
 
-<Pane fx:id="PanelPrincipal" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.tiendaGUI.Controllers.HelloController">
-   <children>
-      <ToolBar fx:id="PanelAbajo" layoutX="5.0" layoutY="332.0" prefHeight="40.0" prefWidth="590.0" style="-fx-background-color: #90B1DB;">
-        <items>
-          <Button fx:id="BotonInvetario" mnemonicParsing="false" onAction="#presionarBotonInventario" text="Inventario" />
-            <Button fx:id="BotonVentas" mnemonicParsing="false" onAction="#presionarBotonVentas" text="Vender" />
-            <Button fx:id="BotonEstadisticas" mnemonicParsing="false" onAction="#presionarBotonEstadisticas" text="Estadisticas" />
-        </items>
-      </ToolBar>
-      <Label fx:id="panelArriba" alignment="CENTER" layoutX="14.0" layoutY="14.0" prefHeight="48.0" prefWidth="573.0" style="-fx-background-color: #90B1DB;" text="TIENDA CASTILLO " textOverrun="WORD_ELLIPSIS">
-         <font>
-            <Font name="Castellar" size="20.0" />
-         </font>
-      </Label>
-      <Pane fx:id="ImagenDelMedio" cache="true" cacheHint="SPEED" layoutX="201.0" layoutY="100.0" prefHeight="200.0" prefWidth="200.0" />
-   </children>
+<Pane fx:id="PanelPrincipal" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity"
+      prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="org.tiendaGUI.Controllers.HelloController">
+    <ToolBar fx:id="PanelAbajo" layoutX="5.0" layoutY="332.0" prefHeight="40.0" prefWidth="590.0"
+             style="-fx-background-color: #90B1DB;">
+        <Button fx:id="BotonInvetario" mnemonicParsing="false" onAction="#presionarBotonInventario"
+                text="Inventario"/>
+        <Button fx:id="BotonVentas" mnemonicParsing="false" onAction="#presionarBotonVentas" text="Vender"/>
+        <Button fx:id="BotonEstadisticas" mnemonicParsing="false" onAction="#presionarBotonEstadisticas"
+                text="Estadisticas"/>
+    </ToolBar>
+    <Label fx:id="panelArriba" alignment="CENTER" layoutX="14.0" layoutY="14.0" prefHeight="48.0" prefWidth="573.0"
+           style="-fx-background-color: #90B1DB;" text="TIENDA CASTILLO " textOverrun="WORD_ELLIPSIS">
+        <font>
+          <Font name="Castellar" size="20.0"/>
+        </font>
+    </Label>
+    <Pane fx:id="ImagenDelMedio" cache="true" cacheHint="SPEED" layoutX="201.0" layoutY="100.0" prefHeight="200.0"
+          prefWidth="200.0"/>
 </Pane>
