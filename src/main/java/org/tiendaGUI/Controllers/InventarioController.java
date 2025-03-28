@@ -1,9 +1,9 @@
 package org.tiendaGUI.Controllers;
 
-import LogicaTienda.DataSerializer;
-import LogicaTienda.DataModel;
+import LogicaTienda.Data.DataSerializer;
+import LogicaTienda.Data.DataModel;
 import LogicaTienda.Model.Productos;
-import LogicaTienda.formularioProduct;
+import LogicaTienda.Forms.formularioProduct;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;

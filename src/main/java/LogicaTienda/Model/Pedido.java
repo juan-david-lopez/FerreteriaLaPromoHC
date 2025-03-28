@@ -9,12 +9,13 @@ import lombok.Setter;
 @Setter
 
 public class Pedido {
-private int cantidad;
-private String estadoPedido;
-private double precioSubTotal;
-private final ObservableList<Productos> productosSubTotal = FXCollections.observableArrayList();
-@Override
+    private String idPedido;
+    private int cantidad;
+    private String estadoPedido;
+    private double precioSubTotal;
+    private final ObservableList<Productos> productosSubTotal = FXCollections.observableArrayList();
+    @Override
     public String toString() {
     return "Pedido{" + "cantidad=" + cantidad + '}' + "productosSubTotal=" + precioSubTotal + '}';
-}
+    }
 }

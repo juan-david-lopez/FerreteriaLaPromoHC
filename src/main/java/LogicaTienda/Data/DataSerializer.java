@@ -1,4 +1,4 @@
-package LogicaTienda;
+package LogicaTienda.Data;
 
 import LogicaTienda.Model.Productos;
 import com.google.gson.Gson;

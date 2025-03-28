@@ -1,5 +1,6 @@
-package LogicaTienda;
+package LogicaTienda.Forms;
 
+import LogicaTienda.Data.DataSerializer;
 import LogicaTienda.Model.Productos;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;

@@ -1,6 +1,7 @@
-package org.tiendaGUI;
+package app;
 
-import LogicaTienda.DataSerializer;
+import LogicaTienda.Data.DataModel;
+import LogicaTienda.Data.DataSerializer;
 import LogicaTienda.Model.Productos;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
@@ -35,11 +36,11 @@ public class HelloApplication extends Application {
         listaProductos = FXCollections.observableArrayList(productosCargados);
 
         // Colocar los productos en el DataModel para uso global
-        LogicaTienda.DataModel.getProductos().setAll(listaProductos);
+        DataModel.getProductos().setAll(listaProductos);
 
         try {
             // Cargar la vista
-            FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("hello-view.fxml"));
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/tiendaGUI/hello-view.fxml"));
             Scene scene = new Scene(fxmlLoader.load(), 600, 390);
             stage.setTitle("Tienda");
             stage.setScene(scene);
@@ -51,7 +52,7 @@ public class HelloApplication extends Application {
 
         // Al cerrar, se guarda la lista global de DataModel, que es la única fuente de verdad.
         stage.setOnCloseRequest(event -> {
-            ObservableList<Productos> productosGlobales = LogicaTienda.DataModel.getProductos();
+            ObservableList<Productos> productosGlobales = DataModel.getProductos();
             if (!productosGlobales.isEmpty()) {
                 try {
                     serializer.serializeData(productosGlobales);
