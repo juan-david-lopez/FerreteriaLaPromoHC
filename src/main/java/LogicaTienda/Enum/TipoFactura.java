@@ -1,4 +1,4 @@
-package LogicaTienda;
+package LogicaTienda.Enum;
 
 public enum TipoFactura {
     Electronica, Impresa

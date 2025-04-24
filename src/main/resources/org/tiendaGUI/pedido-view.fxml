@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.ToolBar?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="475.0" prefWidth="680.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.tiendaGUI.Controllers.PedidoController">
+   <children>
+      <Label id="Panel1" alignment="CENTER" contentDisplay="TOP" layoutX="-16.0" layoutY="-14.0" prefHeight="84.0" prefWidth="712.0" style="-fx-background-color: #90B1DB;" text="FERRETERIA LA PROMO H&amp;C" textAlignment="CENTER">
+         <font>
+            <Font size="21.0" />
+         </font>
+      </Label>
+      <ToolBar layoutX="13.0" layoutY="421.0" prefHeight="40.0" prefWidth="678.0" style="-fx-background-color: #90B1DB;">
+         <items>
+            <Button fx:id="btnPagar" mnemonicParsing="false" onAction="#irApagar" text="Pagar" />
+            <Button fx:id="btnFacturaElectro" mnemonicParsing="false" onAction="#generarFacturaElectronica" text="FacturaElectronica" />
+            <Button fx:id="btonFacturaImprs" mnemonicParsing="false" onAction="#imprimirFactura" text="FacturaImpr" />
+            <Button mnemonicParsing="false" text="AgregarProducto" />
+            <Button fx:id="btonEliminarProdct" mnemonicParsing="false" onAction="#eliminarProducto" text="EliminarProducto" />
+            <Button fx:id="btnDomicilio" mnemonicParsing="false" onAction="#irADomicilio" text="Domicilio" />
+            <Button fx:id="BtnVolver" mnemonicParsing="false" onAction="#volverMenu" text="Volver" />
+         </items>
+      </ToolBar>
+      <TableView fx:id="tblProductos" layoutX="9.0" layoutY="78.0" prefHeight="334.0" prefWidth="678.0">
+        <columns>
+          <TableColumn fx:id="ColumnaNombre" prefWidth="181.5999755859375" text="Nombre" />
+          <TableColumn fx:id="ColumnaValor" prefWidth="178.4000244140625" text="Valor" />
+            <TableColumn fx:id="ColumnaStock" prefWidth="137.60009765625" text="Cantidad" />
+            <TableColumn fx:id="ColumnaIdProducto" prefWidth="180.79998779296875" text="IdProducto" />
+        </columns>
+      </TableView>
+   </children>
+</AnchorPane>

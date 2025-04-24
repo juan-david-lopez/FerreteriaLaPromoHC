@@ -1,10 +1,10 @@
-package LogicaTienda;
+package LogicaTienda.Logic;
 
 
 import LogicaTienda.Model.Factura;
 
-import static LogicaTienda.TipoFactura.Electronica;
-import static LogicaTienda.TipoFactura.Impresa;
+import static LogicaTienda.Enum.TipoFactura.Electronica;
+import static LogicaTienda.Enum.TipoFactura.Impresa;
 
 public class LogicaFacturaElectronicaeImpr {
     public String TipoFactura(Factura factura){

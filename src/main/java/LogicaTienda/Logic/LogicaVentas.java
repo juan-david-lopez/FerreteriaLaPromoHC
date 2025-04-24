@@ -1,4 +1,4 @@
-package LogicaTienda;
+package LogicaTienda.Logic;
 
 import LogicaTienda.Model.Productos;
 

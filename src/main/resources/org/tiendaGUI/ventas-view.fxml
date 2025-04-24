@@ -9,28 +9,29 @@
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.tiendaGUI.Controllers.VentasController">
+<AnchorPane prefHeight="488.0" prefWidth="708.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.tiendaGUI.Controllers.VentasController">
    <children>
       <FlowPane alignment="TOP_CENTER" layoutX="14.0" layoutY="14.0" prefHeight="479.0" prefWidth="564.0" rowValignment="TOP">
          <children>
-            <Label id="Panel1" alignment="CENTER" contentDisplay="TOP" prefHeight="60.0" prefWidth="562.0" style="-fx-background-color: #90B1DB;" text="FERRETERIA LA PROMO H&amp;C" textAlignment="CENTER">
+            <Label id="Panel1" alignment="CENTER" contentDisplay="TOP" prefHeight="60.0" prefWidth="682.0" style="-fx-background-color: #90B1DB;" text="FERRETERIA LA PROMO H&amp;C" textAlignment="CENTER">
                <font>
                   <Font size="21.0" />
                </font>
             </Label>
-            <TableView fx:id="tablaNumero2" nodeOrientation="LEFT_TO_RIGHT" prefHeight="367.0" prefWidth="562.0">
+            <TableView fx:id="tablaNumero2" nodeOrientation="LEFT_TO_RIGHT" prefHeight="360.0" prefWidth="665.0">
               <columns>
                 <TableColumn fx:id="columnaNombre" prefWidth="150.39996945858002" text="Nombre" />
                 <TableColumn fx:id="columnaPrecio" minWidth="0.0" prefWidth="147.1999969482422" text="precio" />
                   <TableColumn fx:id="columnaCantidad" prefWidth="135.20001220703125" text="cantidad" />
                   <TableColumn fx:id="columnaId" prefWidth="128.79998779296875" text="ProductoID" />
+                  <TableColumn fx:id="columnaStock" prefWidth="102.39998779296877" text="Stock" />
               </columns>
             </TableView>
-            <ToolBar prefHeight="40.0" prefWidth="568.0" style="-fx-background-color: #90B1DB;">
+            <ToolBar prefHeight="40.0" prefWidth="665.0" style="-fx-background-color: #90B1DB;">
               <items>
                 <Button fx:id="BotonVender" mnemonicParsing="false" onAction="#btnVenderAction" text="Vender" />
                   <Button fx:id="BtonActualizar" mnemonicParsing="false" onAction="#actualizarTabla" text="Actualizar" />
-                  <Button mnemonicParsing="false" text="Ir al carrito" />
+                  <Button fx:id="btnIrCarrito" onAction="#btnIrCarritoAction" text="Ir al Carrito" />
                   <Button fx:id="BtnVolver" mnemonicParsing="false" onAction="#btnVolverAction" text="Volver" />
               </items>
             </ToolBar>
