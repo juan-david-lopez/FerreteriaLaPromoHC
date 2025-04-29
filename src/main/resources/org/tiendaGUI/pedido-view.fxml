@@ -28,9 +28,9 @@
       </ToolBar>
       <TableView fx:id="tblProductos" layoutX="9.0" layoutY="78.0" prefHeight="334.0" prefWidth="678.0">
         <columns>
-          <TableColumn fx:id="ColumnaNombre" prefWidth="181.5999755859375" text="Nombre" />
-          <TableColumn fx:id="ColumnaValor" prefWidth="178.4000244140625" text="Valor" />
-            <TableColumn fx:id="ColumnaStock" prefWidth="137.60009765625" text="Cantidad" />
+          <TableColumn fx:id="columnaNombre" prefWidth="181.5999755859375" text="Nombre" />
+          <TableColumn fx:id="columnaValor" prefWidth="178.4000244140625" text="Valor" />
+            <TableColumn fx:id="columnaCantidad" prefWidth="137.60009765625" text="Cantidad" />
             <TableColumn fx:id="ColumnaIdProducto" prefWidth="180.79998779296875" text="IdProducto" />
         </columns>
       </TableView>

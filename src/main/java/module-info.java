@@ -10,6 +10,7 @@ module org.example.tiendacasa {
     opens LogicaTienda.Model to com.google.gson, javafx.base;
     opens LogicaTienda.Data to com.google.gson, javafx.base;
     opens LogicaTienda.Forms to com.google.gson, javafx.base;
+    opens org.tiendaGUI.DTO to javafx.base;
     
     exports org.tiendaGUI.Controllers;
     exports LogicaTienda;

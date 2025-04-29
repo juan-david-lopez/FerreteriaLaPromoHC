@@ -18,7 +18,7 @@
                   <Font size="21.0" />
                </font>
             </Label>
-            <TableView fx:id="tablaNumero2" nodeOrientation="LEFT_TO_RIGHT" prefHeight="360.0" prefWidth="665.0">
+            <TableView fx:id="tablaProductos" nodeOrientation="LEFT_TO_RIGHT" prefHeight="360.0" prefWidth="665.0">
               <columns>
                 <TableColumn fx:id="columnaNombre" prefWidth="150.39996945858002" text="Nombre" />
                 <TableColumn fx:id="columnaPrecio" minWidth="0.0" prefWidth="147.1999969482422" text="precio" />
@@ -30,7 +30,7 @@
             <ToolBar prefHeight="40.0" prefWidth="665.0" style="-fx-background-color: #90B1DB;">
               <items>
                 <Button fx:id="BotonVender" mnemonicParsing="false" onAction="#btnVenderAction" text="Vender" />
-                  <Button fx:id="BtonActualizar" mnemonicParsing="false" onAction="#actualizarTabla" text="Actualizar" />
+                  <Button fx:id="BtonActualizar" mnemonicParsing="false" onAction="#btnActualizarAction" text="Actualizar" />
                   <Button fx:id="btnIrCarrito" onAction="#btnIrCarritoAction" text="Ir al Carrito" />
                   <Button fx:id="BtnVolver" mnemonicParsing="false" onAction="#btnVolverAction" text="Volver" />
               </items>

@@ -1,40 +1,47 @@
 package org.tiendaGUI.Controllers;
 
 import LogicaTienda.Data.DataModel;
+import javafx.scene.control.cell.TextFieldTableCell;
+import org.tiendaGUI.DTO.CarritoDTO;
+import javax.swing.*;
+import LogicaTienda.Model.Factura;
 import LogicaTienda.Model.Pago;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-
-import java.net.URL;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ResourceBundle;
-import java.util.UUID;
-import javafx.scene.control.TextFormatter;
+import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.io.IOException;
+import java.net.URL;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Optional;
+import java.util.ResourceBundle;
+import java.util.UUID;
+
 public class PagoController implements Initializable {
-    @FXML private Label lblTotalCarrito;  // Mantenemos esta referencia ya que ahora existe en el FXML
+    @FXML private Label lblTotalCarrito;
     @FXML private Label lblCambio;
+    @FXML private Label lblMontoRequerido;
     @FXML private TextField montoField;
     @FXML private ComboBox<String> metodoPagoCombo;
     @FXML private TextField referenciaField;
     @FXML private Button btnProcesar;
     @FXML private Button btnCancelar;
     @FXML private Button btnVolver;
-    @FXML private Label lblMontoRequerido;
     @FXML private TableView<Pago> tablaPagos;
     @FXML private TableColumn<Pago, String> columnaId;
     @FXML private TableColumn<Pago, Double> columnaMonto;
@@ -43,243 +50,78 @@ public class PagoController implements Initializable {
     @FXML private TableColumn<Pago, String> columnaEstado;
     @FXML private TableColumn<Pago, String> columnaReferencia;
 
-    private ObservableList<Pago> listaPagos = FXCollections.observableArrayList();
-    private double montoTotalCarrito = 0.0; // Valor predeterminado
+    // DTO recibido desde PedidoController
+    private CarritoDTO carritoDTO;
+    private double montoTotalCarrito = 0.0;
+
+    @FXML
+    public void setCarritoDTO(CarritoDTO carritoDTO) {
+        this.carritoDTO = carritoDTO;
+        // Inicializar monto y tabla de carrito en base al DTO
+        this.montoTotalCarrito = carritoDTO.getTotal();
+        actualizarInterfazMonto(montoTotalCarrito);
+    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        System.out.println("📊 Inicializando controlador de pagos");
-
-        // Configurar columnas de la tabla
+        // Configurar columnas de tabla de pagos
         columnaId.setCellValueFactory(new PropertyValueFactory<>("id"));
         columnaMonto.setCellValueFactory(new PropertyValueFactory<>("monto"));
         columnaMetodo.setCellValueFactory(new PropertyValueFactory<>("metodoPago"));
         columnaFecha.setCellValueFactory(new PropertyValueFactory<>("fecha"));
         columnaEstado.setCellValueFactory(new PropertyValueFactory<>("estado"));
         columnaReferencia.setCellValueFactory(new PropertyValueFactory<>("referencia"));
-
-        tablaPagos.setItems(listaPagos);
-
-        // Cargar los pagos existentes desde el modelo de datos
+        columnaId.setCellFactory(TextFieldTableCell.forTableColumn());
+        columnaId.setOnEditCommit(event -> {
+            Pago pago = event.getRowValue();
+            pago.setId(event.getNewValue());
+        });
+        // Cargar pagos actuales
         tablaPagos.setItems(DataModel.getPagos());
 
-        // Inicializar el ComboBox con métodos de pago
-        ObservableList<String> metodosPago = FXCollections.observableArrayList(
+        // Configurar combo de métodos
+        metodoPagoCombo.setItems(FXCollections.observableArrayList(
                 "Efectivo", "Tarjeta", "Transferencia", "Otro"
-        );
-        metodoPagoCombo.setItems(metodosPago);
-        metodoPagoCombo.setValue("Efectivo"); // Valor por defecto
+        ));
+        metodoPagoCombo.setValue("Transferencia");
 
-        // Configurar TextFormatter para solo permitir números y punto decimal
-        montoField.setTextFormatter(new TextFormatter<>(change -> {
-            if (change.getControlNewText().matches("\\d*\\.?\\d*")) {
-                return change;
-            }
-            return null;
-        }));
+        // Formato numérico para monto
+        montoField.setTextFormatter(new TextFormatter<>(change ->
+                change.getControlNewText().matches("\\d*\\.?\\d*") ? change : null));
 
-        // Listener para actualizar el cambio cuando el monto cambia
-        montoField.textProperty().addListener((observable, oldValue, newValue) -> {
-            if (!newValue.isEmpty()) {
-                try {
-                    double montoIngresado = Double.parseDouble(newValue);
-                    actualizarCambio(montoIngresado);
-                } catch (NumberFormatException e) {
-                    // Ignorar si no es un número válido
-                }
-            } else {
-                lblCambio.setText("Cambio: $0.00");
-                lblCambio.setStyle("-fx-text-fill: black; -fx-font-weight: bold;");
-            }
-        });
-
-        // Listener para habilitar/deshabilitar campo de referencia según método de pago
-        metodoPagoCombo.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if ("Efectivo".equals(newVal)) {
-                referenciaField.setDisable(true);
-                referenciaField.clear();
-            } else {
-                referenciaField.setDisable(false);
-            }
-        });
-
-        // Para debugging - valores por defecto
-        lblCambio.setText("Cambio: $0.00");
-
-        // Calcular y mostrar el total del carrito automáticamente
-        actualizarTotalCarrito();
-
-        System.out.println("✅ Controlador de pagos inicializado");
-    }
-
-    // Método para actualizar el total del carrito
-    private void actualizarTotalCarrito() {
-        // Utilizar el método de DataModel para calcular el total
-        this.montoTotalCarrito = DataModel.calcularTotalCarrito();
-
-        // Actualizar las etiquetas
-        if (lblTotalCarrito != null) {
-            lblTotalCarrito.setText(String.format("Total a pagar: $%.2f", montoTotalCarrito));
-            System.out.println("✅ Etiqueta Total actualizada: " + lblTotalCarrito.getText());
-        } else {
-            System.out.println("❌ lblTotalCarrito es null");
-        }
-
-        if (lblMontoRequerido != null) {
-            lblMontoRequerido.setText(String.format("Debe pagar: $%.2f", montoTotalCarrito));
-            System.out.println("✅ Etiqueta MontoRequerido actualizada: " + lblMontoRequerido.getText());
-        } else {
-            System.out.println("❌ lblMontoRequerido es null");
-        }
-    }
-
-    @FXML
-    private void volverMenu(ActionEvent event) {
-        cambiarVentana(event, "pedido-view.fxml", "Carrito de Compras");
-    }
-
-    private void cambiarVentana(ActionEvent event, String fxmlFile, String title) {
-        try {
-            URL url = getClass().getResource("/org/tiendaGUI/" + fxmlFile);
-            if (url == null) {
-                throw new IllegalStateException("No se pudo encontrar el archivo FXML: " + fxmlFile);
-            }
-
-            FXMLLoader loader = new FXMLLoader(url);
-            Parent root = loader.load();
-
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.setTitle(title);
-            stage.show();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            mostrarAlerta("Error", "Error al cargar la ventana: " + e.getMessage(), Alert.AlertType.ERROR);
-        }
-    }
-
-    private void actualizarCambio(double montoIngresado) {
-        // Calcular la diferencia entre el monto ingresado y el total del carrito
-        double cambio = montoIngresado - montoTotalCarrito;
-
-        if (cambio >= 0) {
-            lblCambio.setText(String.format("Cambio: $%.2f", cambio));
-            lblCambio.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
-        } else {
-            lblCambio.setText(String.format("Falta: $%.2f", Math.abs(cambio)));
-            lblCambio.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
-        }
-
-        // Animar el cambio para hacerlo más visible
-        animarCambioLabel();
-    }
-
-    // ESTE ES EL MÉTODO CLAVE
-    public void setMontoTotalCarrito(double monto) {
-        System.out.println("💰 Estableciendo monto total del carrito: $" + monto);
-
-        // Asegurar que estamos en el hilo JavaFX
-        if (Platform.isFxApplicationThread()) {
-            actualizarInterfazMonto(monto);
-        } else {
-            Platform.runLater(() -> actualizarInterfazMonto(monto));
-        }
-    }
-
-    // Método auxiliar para actualizar la interfaz con el monto
-    private void actualizarInterfazMonto(double monto) {
-        this.montoTotalCarrito = monto;
-
-        // Actualizar etiquetas
-        if (lblTotalCarrito != null) {
-            lblTotalCarrito.setText(String.format("Total a pagar: $%.2f", montoTotalCarrito));
-            System.out.println("✅ Etiqueta Total actualizada: " + lblTotalCarrito.getText());
-        } else {
-            System.out.println("❌ lblTotalCarrito es null");
-        }
-
-        if (lblMontoRequerido != null) {
-            lblMontoRequerido.setText(String.format("Debe pagar: $%.2f", montoTotalCarrito));
-            System.out.println("✅ Etiqueta MontoRequerido actualizada: " + lblMontoRequerido.getText());
-        } else {
-            System.out.println("❌ lblMontoRequerido es null");
-        }
-
-        // Si ya hay un monto ingresado, actualizar el cambio
-        if (montoField != null && !montoField.getText().isEmpty()) {
+        // Listeners
+        montoField.textProperty().addListener((obs, oldV, newV) -> {
             try {
-                double montoIngresado = Double.parseDouble(montoField.getText());
-                actualizarCambio(montoIngresado);
-            } catch (NumberFormatException e) {
-                // Ignorar si no es un número válido
-            }
-        }
+                double ingresado = newV.isEmpty() ? 0 : Double.parseDouble(newV);
+                actualizarCambio(ingresado);
+            } catch (NumberFormatException ignored) {}
+        });
+        metodoPagoCombo.valueProperty().addListener((obs, o, n) -> {
+            boolean esEfectivo = "Efectivo".equals(n);
+            referenciaField.setDisable(esEfectivo);
+            if (esEfectivo) referenciaField.clear();
+        });
+
+        lblCambio.setText("Cambio: $0.00");
     }
 
     @FXML
     private void btnProcesarAction() {
-        try {
-            // Verificación de monto ingresado
-            if (montoField.getText().isEmpty()) {
-                mostrarAlerta("Error", "Debe ingresar un monto", Alert.AlertType.ERROR);
-                return;
-            }
-
-            double montoIngresado = Double.parseDouble(montoField.getText());
-
-            if (montoIngresado <= 0) {
-                mostrarAlerta("Error", "El monto debe ser mayor a cero", Alert.AlertType.ERROR);
-                return;
-            }
-
-            // Verificar que el monto sea suficiente para cubrir el total
-            if (montoIngresado < montoTotalCarrito) {
-                montoField.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-                mostrarAlerta("Error",
-                        String.format("El monto ingresado ($%.2f) es menor que el total a pagar ($%.2f)",
-                                montoIngresado, montoTotalCarrito),
-                        Alert.AlertType.ERROR);
-                return;
-            } else {
-                montoField.setStyle(""); // Limpia el estilo si es válido
-            }
-
-            // Calcular el cambio
-            double cambio = montoIngresado - montoTotalCarrito;
-
-            // Verificación de referencia para métodos de pago distintos a efectivo
-            String metodoPago = metodoPagoCombo.getValue();
-            if (!metodoPago.equals("Efectivo") && (referenciaField.getText() == null || referenciaField.getText().trim().isEmpty())) {
-                mostrarAlerta("Error", "Debe ingresar una referencia para el método de pago " + metodoPago, Alert.AlertType.ERROR);
-                return;
-            }
-
-            // Registrar el pago
-            registrarPago(montoIngresado, cambio);
-
-            // Limpiar el carrito después de pagar
-            DataModel.getCarritoVentas().clear();
-
-            // Mostrar confirmación
-            mostrarAlerta("Éxito", String.format(""" 
-                                    Pago procesado correctamente
-                                    Total pagado: $%.2f
-                                    Total de la compra: $%.2f
-                                    Cambio: $%.2f""",
-                            montoIngresado, montoTotalCarrito, cambio),
-                    Alert.AlertType.INFORMATION);
-
-            limpiarCampos();
-
-            // Actualizar el total del carrito después de limpiar
-            actualizarTotalCarrito();
-        } catch (NumberFormatException e) {
-            mostrarAlerta("Error", "El monto debe ser un número válido", Alert.AlertType.ERROR);
-        } catch (Exception e) {
-            e.printStackTrace();
-            mostrarAlerta("Error", "Error al procesar el pago: " + e.getMessage(), Alert.AlertType.ERROR);
+        // Validaciones básicas
+        String text = montoField.getText();
+        if (text.isEmpty()) { showError("Debe ingresar un monto"); return; }
+        double ingresado = Double.parseDouble(text);
+        if (ingresado < montoTotalCarrito) { showError("Monto insuficiente"); return; }
+        String metodo = metodoPagoCombo.getValue();
+        if (!"Efectivo".equals(metodo) && referenciaField.getText().trim().isEmpty()) {
+            showError("Referencia requerida para " + metodo); return;
         }
+        double cambio = ingresado - montoTotalCarrito;
+
+        Pago pago = registrarPago(ingresado, cambio);
+        crearFacturaConDialogo(pago);
+        showInfo(String.format("Pago correcto: pagó $%.2f, cambio $%.2f", ingresado, cambio));
+        limpiarCampos();
     }
 
     @FXML
@@ -287,66 +129,89 @@ public class PagoController implements Initializable {
         limpiarCampos();
     }
 
-    private void limpiarCampos() {
-        montoField.clear();
-        referenciaField.clear();
-        metodoPagoCombo.setValue("Efectivo"); // Restablecer al valor por defecto
-        lblCambio.setText("Cambio: $0.00");
-        lblCambio.setStyle("-fx-text-fill: black; -fx-font-weight: bold;");
-        montoField.setStyle(""); // Limpiar cualquier estilo de error
-    }
-
-    private void mostrarAlerta(String titulo, String mensaje, Alert.AlertType tipo) {
-        Alert alerta = new Alert(tipo);
-        alerta.setTitle(titulo);
-        alerta.setHeaderText(null);
-        alerta.setContentText(mensaje);
-        alerta.showAndWait();
-    }
-
-    private void registrarPago(double montoPagado, double cambio) {
-        // Generar un ID único para el pago
-        String idPago = UUID.randomUUID().toString().substring(0, 8);
-
-        // Obtener la fecha y hora actual formateada
-        String fecha = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-
-        // Obtener el método de pago seleccionado
-        String metodoPago = metodoPagoCombo.getValue();
-
-        // Determinar la referencia según el método de pago
-        String referencia;
-        if ("Efectivo".equals(metodoPago)) {
-            referencia = String.format("Pagado: $%.2f, Cambio: $%.2f", montoPagado, cambio);
-        } else {
-            referencia = referenciaField.getText();
+    @FXML
+    private void btnVolverAction(ActionEvent event) {
+        // Al volver, puedes pasar el mismo DTO de carrito
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/tiendaGUI/pedido-view.fxml"));
+            Parent root = loader.load();
+            PedidoController ctrl = loader.getController();
+            ctrl.setCarritoDTO(carritoDTO);
+            Stage s = (Stage)((Node)event.getSource()).getScene().getWindow();
+            s.setScene(new Scene(root)); s.setTitle("Carrito de Compras"); s.show();
+        } catch (IOException e) {
+            e.printStackTrace(); showError("No se pudo volver al carrito");
         }
+    }
 
-        // Crear el objeto Pago
-        Pago nuevoPago = new Pago(
-                idPago,
-                montoTotalCarrito, // Monto de la compra, no el pagado
-                metodoPago,
-                fecha,
-                "Completado",
-                referencia
-        );
-
-        // Agregar el pago a la lista observable y al modelo de datos
-        listaPagos.add(nuevoPago);
-        DataModel.getPagos().add(nuevoPago);
-
-        // Actualizar la tabla
+    private Pago registrarPago(double montoPagado, double cambio) {
+        String idPago = UUID.randomUUID().toString().substring(0,8);
+        String fecha = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        String metodo = metodoPagoCombo.getValue();
+        String ref = "Efectivo".equals(metodo)
+                ? String.format("Pagado $%.2f, cambio $%.2f", montoPagado, cambio)
+                : referenciaField.getText().trim();
+        Pago p = new Pago(idPago, montoTotalCarrito, metodo, fecha, "Completado", ref);
+        DataModel.getPagos().add(p);
         tablaPagos.refresh();
+        return p;
+    }
+    public void crearFacturaConDialogo(Pago pago) {
+        // Mostrar el diálogo para ingresar los datos del cliente (nombre y cédula)
+        JTextField nombreField = new JTextField();
+        JTextField cedulaField = new JTextField();
 
-        System.out.println("✅ Pago registrado: ID=" + idPago + ", Monto=$" + montoTotalCarrito);
+        Object[] message = {
+                "Nombre del Cliente:", nombreField,
+                "Cédula del Cliente:", cedulaField
+        };
+
+        int option = JOptionPane.showConfirmDialog(null, message, "Datos del Cliente", JOptionPane.OK_CANCEL_OPTION);
+
+        if (option == JOptionPane.OK_OPTION) {
+            // Obtener los valores de los campos de texto
+            String nombreCliente = nombreField.getText().trim();
+            String cedulaCliente = cedulaField.getText().trim();
+
+            // Validación simple (puedes personalizarla)
+            if (nombreCliente.isEmpty() || cedulaCliente.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "Por favor ingrese todos los campos.");
+                return;
+            }
+
+            // Validar formato de cédula (por ejemplo, que sea numérica y tenga una longitud adecuada)
+            if (!cedulaCliente.matches("\\d+")) {
+                JOptionPane.showMessageDialog(null, "La cédula debe ser numérica.");
+                return;
+            }
+
+            // Llamar a la función crearFactura con los datos del cliente
+            DataModel.crearFacturaDialogo(pago, nombreCliente, cedulaCliente);
+
+            // Mostrar mensaje de éxito
+            JOptionPane.showMessageDialog(null, "Factura creada exitosamente.");
+        } else {
+            JOptionPane.showMessageDialog(null, "Operación cancelada.");
+        }
+    }
+    private void actualizarCambio(double ingresado) {
+        double dif = ingresado - montoTotalCarrito;
+        lblCambio.setText(String.format(dif>=0?"Cambio: $%.2f":"Falta: $%.2f", Math.abs(dif)));
+        lblCambio.setStyle(dif>=0?"-fx-text-fill:green":"-fx-text-fill:red");
+        new FadeTransition(Duration.millis(200), lblCambio).play();
     }
 
-    private void animarCambioLabel() {
-        FadeTransition ft = new FadeTransition(Duration.millis(200), lblCambio);
-        ft.setFromValue(0.5);
-        ft.setToValue(1.0);
-        ft.setCycleCount(1);
-        ft.play();
+    private void actualizarInterfazMonto(double monto) {
+        Platform.runLater(() -> {
+            lblTotalCarrito.setText(String.format("Total: $%.2f", monto));
+            lblMontoRequerido.setText(String.format("Debe: $%.2f", monto));
+        });
     }
+
+    private void limpiarCampos() {
+        montoField.clear(); referenciaField.clear(); metodoPagoCombo.setValue("Efectivo"); lblCambio.setText("Cambio: $0.00");
+    }
+
+    private void showError(String msg) { new Alert(Alert.AlertType.ERROR, msg).showAndWait(); }
+    private void showInfo(String msg)  { new Alert(Alert.AlertType.INFORMATION, msg).showAndWait(); }
 }

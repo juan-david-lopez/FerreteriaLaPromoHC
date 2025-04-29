@@ -11,7 +11,6 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,27 +18,20 @@ import java.util.logging.Logger;
 public class HelloApplication extends Application {
     private static final Logger LOGGER = Logger.getLogger(HelloApplication.class.getName());
 
-    // Ya no es estrictamente necesaria si usamos DataModel global, pero se puede usar para cargar inicialmente.
-    private ObservableList<Productos> listaProductos;
     private DataSerializer serializer;
 
     @Override
     public void start(Stage stage) {
         serializer = new DataSerializer("productos.json");
 
-        // Deserializar los datos UNA sola vez
+        // Cargar productos (ya no es necesario validar null si DataSerializer lo maneja)
         List<Productos> productosCargados = serializer.deserializeData();
-        if (productosCargados == null) {
-            productosCargados = new ArrayList<>();  // Evita valores nulos
-            LOGGER.info("No se encontraron productos; se inicializa con lista vacía.");
-        }
-        listaProductos = FXCollections.observableArrayList(productosCargados);
+        ObservableList<Productos> listaProductos = FXCollections.observableArrayList(productosCargados);
 
-        // Colocar los productos en el DataModel para uso global
+        // Colocar los productos en el DataModel global
         DataModel.getProductos().setAll(listaProductos);
 
         try {
-            // Cargar la vista
             FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/tiendaGUI/hello-view.fxml"));
             Scene scene = new Scene(fxmlLoader.load(), 600, 390);
             stage.setTitle("Tienda");
@@ -50,7 +42,7 @@ public class HelloApplication extends Application {
             return;
         }
 
-        // Al cerrar, se guarda la lista global de DataModel, que es la única fuente de verdad.
+        // Guardar datos al cerrar la aplicación
         stage.setOnCloseRequest(event -> {
             ObservableList<Productos> productosGlobales = DataModel.getProductos();
             if (!productosGlobales.isEmpty()) {
@@ -64,6 +56,17 @@ public class HelloApplication extends Application {
                 LOGGER.warning("⚠️ No hay productos que guardar.");
             }
         });
+    }
+
+    @Override
+    public void stop() {
+        try {
+            DataModel.guardarFacturas();
+            LOGGER.info("✅ Facturas guardadas correctamente al cerrar la aplicación.");
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "❌ Error al guardar facturas al cerrar.", e);
+        }
+        System.out.println("Aplicación cerrada - datos guardados");
     }
 
     public static void main(String[] args) {
