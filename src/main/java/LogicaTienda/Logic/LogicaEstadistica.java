@@ -1,15 +1,39 @@
 package LogicaTienda.Logic;
 
+import LogicaTienda.Data.DataModel;
+import LogicaTienda.Model.Factura;
 import LogicaTienda.Model.Productos;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class LogicaEstadistica {
     private List<Productos> listaProductos;
 
     public LogicaEstadistica(List<Productos> listaProductos) {
         this.listaProductos = (listaProductos != null) ? listaProductos : new ArrayList<>();
+    }
+
+    // Calcular ventas por día
+    public Map<LocalDate, Double> calcularVentasPorDia() {
+        List<Factura> facturas = DataModel.getFacturas()
+                .stream()
+                .filter(f -> !"Anulada".equals(f.getEstado()))
+                .collect(Collectors.toList());
+
+        // Agrupar facturas por día y sumar los totales
+        Map<LocalDate, Double> ventasPorDia = facturas.stream()
+                .collect(Collectors.groupingBy(
+                        factura -> factura.getFecha().toLocalDate(),
+                        Collectors.summingDouble(Factura::getTotal)
+                ));
+
+        return ventasPorDia;
     }
 
     // Calcular el promedio de precios de los productos
@@ -25,38 +49,55 @@ public class LogicaEstadistica {
 
     // Calcular la cantidad total de productos en stock
     public int calcularTotalProductosEnStock() {
-        return listaProductos.stream().mapToInt(Productos::getStock).sum();
+        return listaProductos.stream().mapToInt(p -> p.getStock() + p.getCantidad()).sum();
+    }
+    
+    public List<Productos> getListaProductos() {
+        return listaProductos;
     }
 
     // Calcular el precio más alto entre los productos
     public double calcularPrecioMasAlto() {
-        return listaProductos.stream().mapToDouble(Productos::getPrecio).max().orElse(0.0);
+        return listaProductos.stream()
+                .mapToDouble(Productos::getPrecio)
+                .max()
+                .orElse(0.0);
     }
 
     // Calcular el precio más bajo entre los productos
     public double calcularPrecioMasBajo() {
-        return listaProductos.stream().mapToDouble(Productos::getPrecio).min().orElse(0.0);
+        return listaProductos.stream()
+                .mapToDouble(Productos::getPrecio)
+                .min()
+                .orElse(0.0);
     }
 
-    // Convertir un string en un objeto Productos
-    public static Productos ConvertirAobjetoProducto(String productos) {
-        try {
-            String[] centinela = productos.split(";");
-            if (centinela.length < 5) {
-                throw new IllegalArgumentException("El formato del string de producto es incorrecto.");
-            }
-            return new Productos(
-                    centinela[0],                      // Nombre
-                    centinela[1],                      // Categoría
-                    Double.parseDouble(centinela[2]),  // Precio
-                    Integer.parseInt(centinela[3]),    // Stock
-                    Integer.parseInt(centinela[4])     // ID u otro dato
-            );
-        } catch (NumberFormatException e) {
-            System.err.println("Error al convertir valores numéricos: " + e.getMessage());
-        } catch (IllegalArgumentException e) {
-            System.err.println("Error en el formato de entrada: " + e.getMessage());
-        }
-        return null; // Retorna null si la conversión falla
+    // Obtener el producto más caro
+    public Productos obtenerProductoMasCaro() {
+        return listaProductos.stream()
+                .max(Comparator.comparingDouble(Productos::getPrecio))
+                .orElse(null);
+    }
+
+    // Obtener el producto con más stock
+    public Productos obtenerProductoConMasStock() {
+        return listaProductos.stream()
+                .max(Comparator.comparingInt(Productos::getStock))
+                .orElse(null);
+    }
+
+    // Calcular el total de ventas sumando todas las facturas (excluyendo anuladas)
+    public double calcularTotalVentas() {
+        return DataModel.getFacturas().stream()
+                .filter(f -> !"Anulada".equals(f.getEstado()))
+                .mapToDouble(Factura::getTotal)
+                .sum();
+    }
+
+    // Calcular el valor total del inventario (precio de venta * stock para todos los productos)
+    public double calcularValorTotalInventario() {
+        return listaProductos.stream()
+                .mapToDouble(producto -> producto.getPrecioParaVender() * (producto.getStock() + producto.getCantidad()))
+                .sum();
     }
 }

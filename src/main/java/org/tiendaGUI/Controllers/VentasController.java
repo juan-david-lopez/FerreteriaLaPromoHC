@@ -57,7 +57,7 @@ public class VentasController implements Initializable {
         ObservableList<ProductoSimpleDTO> dtos = FXCollections.observableArrayList(
                 DataModel.getProductos().stream()
                         .map(p -> new ProductoSimpleDTO(
-                                p.getIdProducto(), p.getNombre(), p.getPrecio(), p.getCantidad(), p.getStock()
+                                p.getIdProducto(), p.getNombre(), p.getPrecioParaVender(), p.getCantidad(), p.getStock()
                         ))
                         .collect(Collectors.toList())
         );
@@ -106,11 +106,18 @@ public class VentasController implements Initializable {
                     modelo.setCantidad(0);
                     modelo.setStock(modelo.getStock() - restante);
                 }
-                DataModel.getCarritoVentas().add(
-                        new LogicaTienda.Model.Productos(
-                                modelo.getIdProducto(), modelo.getNombre(), modelo.getPrecio(), cantidadDeseada, 0
-                        )
+                // Crear una copia del producto con la cantidad deseada
+                LogicaTienda.Model.Productos productoCarrito = new LogicaTienda.Model.Productos(
+                        modelo.getIdProducto(), 
+                        modelo.getNombre(), 
+                        modelo.getPrecio(), 
+                        modelo.getPorcentajeGanancia(),
+                        cantidadDeseada, 
+                        0
                 );
+                // Asegurarse de que el precio de venta se calcule correctamente
+                productoCarrito.calcularPrecioVenta();
+                DataModel.getCarritoVentas().add(productoCarrito);
                 dataSerializer.serializeData(DataModel.getProductos());
                 cargarYMostrarProductos();
                 mostrarAlerta("Éxito", "Se vendieron " + cantidadDeseada + " unidades.", Alert.AlertType.INFORMATION);

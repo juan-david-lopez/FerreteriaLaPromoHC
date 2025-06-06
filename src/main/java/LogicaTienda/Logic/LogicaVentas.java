@@ -1,10 +1,12 @@
 package LogicaTienda.Logic;
 
 import LogicaTienda.Model.Productos;
+import lombok.Getter;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
 public class LogicaVentas {
     private List<Productos> listaProductos;
 
@@ -49,7 +51,4 @@ public class LogicaVentas {
         return true;
     }
 
-    public List<Productos> getListaProductos() {
-        return listaProductos;
-    }
 }

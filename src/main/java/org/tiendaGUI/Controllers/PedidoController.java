@@ -1,6 +1,7 @@
 package org.tiendaGUI.Controllers;
 
 import LogicaTienda.Data.DataModel;
+import LogicaTienda.Forms.SearchForm;
 import org.tiendaGUI.DTO.CarritoDTO;
 import LogicaTienda.Model.Productos;
 import javafx.collections.FXCollections;
@@ -19,7 +20,6 @@ import javafx.stage.Stage;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
-import java.util.function.Consumer;
 
 public class PedidoController implements Initializable {
 
@@ -31,6 +31,7 @@ public class PedidoController implements Initializable {
 
     @FXML private Button btnFacturaElectro;
     @FXML private Button btnImprimirFactura;
+    @FXML private Button btnAgregarProducto;
     @FXML private Button btnEliminarProducto;
     @FXML private Button btnDomicilio;
     @FXML private Button btnVolver;
@@ -49,7 +50,7 @@ public class PedidoController implements Initializable {
         // Configurar columnas
         ColumnaIdProducto.setCellValueFactory(new PropertyValueFactory<>("idProducto"));
         columnaNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
-        columnaValor.setCellValueFactory(new PropertyValueFactory<>("precio"));
+        columnaValor.setCellValueFactory(new PropertyValueFactory<>("PrecioParaVender"));
         columnaCantidad.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
 
         // Solo inicializar estructura; datos llegan vía DTO
@@ -76,10 +77,14 @@ public class PedidoController implements Initializable {
         }
     }
 
-
+    @FXML
+    private void BtnAgregarProductoOnAction(ActionEvent event) {
+        cambiarVentanaConDTO(event, "Ventas-view.fxml", "Ventas");
+    }
     @FXML
     private void volverMenu(ActionEvent event) {
-        cambiarVentanaConDTO(event, "Ventas-view.fxml", "Ventas");    }
+        cambiarVentanaConDTO(event, "Ventas-view.fxml", "Ventas");
+    }
 
     @FXML
     private void irADomicilio(ActionEvent event) {
@@ -99,7 +104,19 @@ public class PedidoController implements Initializable {
             mostrarAlerta("Error", "No se pudo cargar la vista de Domicilio.", Alert.AlertType.ERROR);
         }
     }
+    @FXML
+    private void MetodoBusquedaTablaCarrito(ActionEvent event) {
+        // Abrir el formulario de búsqueda con los productos actuales del carritoDTO
+        SearchForm searchForm = new SearchForm(carritoDTO.getProductos());
 
+        // Cuando el formulario se cierre, actualizar la tabla con los productos filtrados
+        searchForm.setOnBusquedaFinalizada(productosFiltrados -> {
+            // SOLO actualizar la tabla con la lista filtrada sin tocar el DTO
+            tblProductos.setItems(FXCollections.observableArrayList(productosFiltrados));
+        });
+
+        searchForm.showAndWait();
+    }
 
     @FXML
     private void irApagar(ActionEvent event) {
@@ -129,7 +146,7 @@ public class PedidoController implements Initializable {
 
     private double calcularTotalCarrito() {
         return tblProductos.getItems().stream()
-                .mapToDouble(p -> p.getPrecio() * p.getCantidad())
+                .mapToDouble(p -> p.getPrecioParaVender() * p.getCantidad())
                 .sum();
     }
 
@@ -140,9 +157,12 @@ public class PedidoController implements Initializable {
 
     @FXML
     private void imprimirFactura(ActionEvent event) {
-        mostrarAlerta("Impresión", "Factura enviada a impresión (pendiente).", Alert.AlertType.INFORMATION);
+        irApagar(event);
     }
-
+    @FXML
+    private void RestablecerTablaAction(ActionEvent event) {
+        tblProductos.setItems(FXCollections.observableArrayList(carritoDTO.getProductos()));
+    }
     private void cambiarVentanaConDTO(ActionEvent event, String fxmlFile, String title) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/tiendaGUI/" + fxmlFile));

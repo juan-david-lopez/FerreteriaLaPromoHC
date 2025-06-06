@@ -27,4 +27,7 @@ module org.example.tiendacasa {
     requires com.google.gson;
     requires java.logging;
     requires static lombok;
+    requires io;
+    requires kernel;
+    requires layout;
 }

@@ -20,9 +20,17 @@ public class Factura implements Serializable {
     private String clienteNombre;
     private String clienteIdentificacion;
     private String tipoFactura;
+    private String estado = "Activa"; // Estados posibles: Activa, Anulada, etc.
+    private boolean eliminada = false; // Flag para borrado lógico
 
     public Factura() {
         this.id = UUID.randomUUID().toString().substring(0, 8);
+        this.fecha = LocalDateTime.now();
+        this.productos = new ArrayList<>();
+    }
+
+    public Factura(String id) {
+        this.id = id;
         this.fecha = LocalDateTime.now();
         this.productos = new ArrayList<>();
     }
@@ -33,8 +41,20 @@ public class Factura implements Serializable {
         this.pago = pago;
     }
 
+    public Factura(String id, List<Productos> productos, Pago pago) {
+        this(id);
+        this.productos = new ArrayList<>(productos);
+        this.pago = pago;
+    }
+
     public Factura(List<Productos> productos, Pago pago, String clienteNombre, String clienteIdentificacion) {
         this(productos, pago);
+        this.clienteNombre = clienteNombre;
+        this.clienteIdentificacion = clienteIdentificacion;
+    }
+
+    public Factura(String id, List<Productos> productos, Pago pago, String clienteNombre, String clienteIdentificacion) {
+        this(id, productos, pago);
         this.clienteNombre = clienteNombre;
         this.clienteIdentificacion = clienteIdentificacion;
     }

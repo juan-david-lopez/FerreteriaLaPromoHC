@@ -67,6 +67,11 @@ public class HelloController {
         cambiarVentana(event, "ventas-view.fxml", "Ventas");
     }
 
+    @FXML
+    private void presionarBotonEditorFacturas(ActionEvent event) {
+        cambiarVentana(event, "editor-facturas-view.fxml", "Editor de Facturas");
+    }
+
     /**
      * Cambia de vista a otra interfaz FXML.
      */

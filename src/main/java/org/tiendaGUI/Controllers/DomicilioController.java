@@ -13,11 +13,11 @@ import javafx.scene.control.*;
 import javafx.stage.Stage;
 import lombok.Setter;
 import org.tiendaGUI.Controllers.loader.ViewLoader;
-import org.tiendaGUI.DTO.CarritoDTO;
 import org.tiendaGUI.DTO.DomicilioDTO;
 
 import java.net.URL;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
@@ -34,23 +34,33 @@ public class DomicilioController implements Initializable {
 
     @FXML private Button btnEnviar;
     @FXML private Button btnVolver;
-    private DataModel dataModel;
     private DomicilioDTO domicilioDTO;
     private final DataSerializer domicilioSerializer = new DataSerializer("domicilios.json");
-    @Setter
-    private List<String> idFacturasValidas;
+    private final DataModel dataModel = new DataModel();
 
+    @Setter
+    private List<String> idFacturasValidas = new ArrayList<>();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        DataModel.getFacturas().forEach(facturaDTO -> {
-            // Verifica si facturaDTO tiene el método getIdFactura()
-            idFacturasValidas.add(facturaDTO.getId()); // Agrega el ID de cada FacturaDTO
+        // Initialize the data model
+        dataModel.cargarFacturas();
+        dataModel.cargarDomicilios();
+
+        // ✅ Normaliza los IDs válidos al minúscula y sin espacios
+        dataModel.getFacturas().forEach(facturaDTO -> {
+            if (facturaDTO.getId() != null) {
+                idFacturasValidas.add(facturaDTO.getId().trim().toLowerCase());
+            }
         });
+
         System.out.println("📦 Inicializando controlador de domicilio.");
+        System.out.println("IDs de factura válidos: " + idFacturasValidas);
+
         if (dpFechaEntrega != null) {
             dpFechaEntrega.setValue(LocalDate.now().plusDays(1));
         }
+
         cargarDomicilios();
     }
 
@@ -94,58 +104,60 @@ public class DomicilioController implements Initializable {
             stage.show();
         } catch (Exception e) {
             e.printStackTrace();
-            mostrarAlerta("Error", "No se pudo cargar la vista de confirmación.", Alert.AlertType.ERROR);
+            mostrarAlerta("No se pudo cargar la vista de confirmación.");
         }
     }
 
     @FXML
     private void btnVolverAction(ActionEvent event) {
-        cambiarVentana(event, "pedido-view.fxml", "Carrito de Compras");
+        cambiarVentana(event);
     }
 
     private boolean validarFormulario() {
         if (txtDireccion.getText().trim().isEmpty()) {
-            mostrarAlerta("Error", "Debe ingresar una dirección", Alert.AlertType.ERROR);
+            mostrarAlerta("Debe ingresar una dirección");
             return false;
         }
+
         if (!Pattern.matches("\\d{10}", txtNumeroCelular.getText().trim())) {
-            mostrarAlerta("Error", "El número de celular debe tener 10 dígitos", Alert.AlertType.ERROR);
+            mostrarAlerta("El número de celular debe tener 10 dígitos");
             return false;
         }
+
         if (dpFechaEntrega.getValue() == null || dpFechaEntrega.getValue().isBefore(LocalDate.now())) {
-            mostrarAlerta("Error", "La fecha de entrega debe ser hoy o futura", Alert.AlertType.ERROR);
+            mostrarAlerta("La fecha de entrega debe ser hoy o futura");
             return false;
         }
-        // 🚨 Validar si el ID de factura existe
-        String idFacturaIngresado = txtIdFactura.getText();
-        if (idFacturasValidas == null || !idFacturasValidas.contains(idFacturaIngresado)) {
-            mostrarAlerta("Error", "El ID de factura no es válido.", Alert.AlertType.ERROR);
+
+        // ✅ Validar ID de factura normalizado
+        String idFacturaIngresado = txtIdFactura.getText().trim().toLowerCase();
+        System.out.println("🔍 ID ingresado: " + idFacturaIngresado);
+        if (!idFacturasValidas.contains(idFacturaIngresado)) {
+            mostrarAlerta("El ID de factura no es válido.");
             return false;
         }
+
         return true;
     }
 
-
     private void cargarDomicilios() {
         try {
-            DataModel.getDomicilios().clear();
-            DataModel.getDomicilios().addAll(domicilioSerializer.deserializeDomicilios());
+            dataModel.getDomicilios().clear();
+            dataModel.getDomicilios().addAll(domicilioSerializer.deserializeDomicilios());
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void mostrarAlerta(String titulo, String mensaje, Alert.AlertType tipo) {
-        Alert alert = new Alert(tipo);
-        alert.setTitle(titulo);
+    private void mostrarAlerta(String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
         alert.setHeaderText(null);
         alert.setContentText(mensaje);
         alert.showAndWait();
     }
 
-    private void cambiarVentana(ActionEvent event, String fxmlFile, String title) {
-        ViewLoader.cargarVista(event, fxmlFile, title);
+    private void cambiarVentana(ActionEvent event) {
+        ViewLoader.cargarVista(event, "pedido-view.fxml", "Carrito de Compras");
     }
-
-
 }

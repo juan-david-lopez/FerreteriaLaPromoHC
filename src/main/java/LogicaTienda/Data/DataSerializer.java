@@ -14,6 +14,7 @@ import javafx.collections.ObservableList;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DataSerializer {
@@ -27,6 +28,7 @@ public class DataSerializer {
                 .setPrettyPrinting()
                 .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
                 .create();
+        ensureFileExists(filePath);
     }
 
     private static class LocalDateAdapter extends TypeAdapter<LocalDate> {
@@ -46,6 +48,22 @@ public class DataSerializer {
         }
     }
 
+    private void ensureFileExists(String path) {
+        File file = new File(path);
+        if (!file.exists()) {
+            try {
+                if (file.createNewFile()) {
+                    System.out.println("✅ Archivo creado: " + path);
+                    try (Writer writer = new FileWriter(file)) {
+                        gson.toJson(new ArrayList<>(), writer);  // Escribir lista vacía []
+                    }
+                }
+            } catch (IOException e) {
+                System.err.println("❌ Error al crear archivo JSON: " + e.getMessage());
+            }
+        }
+    }
+
     public void serializeData(ObservableList<Productos> productos) {
         serializeGeneric(productos, filePath);
     }
@@ -59,10 +77,9 @@ public class DataSerializer {
     }
 
     private <T> void serializeGeneric(ObservableList<T> data, String path) {
-        System.out.println("Guardando datos en " + path + ": " + data);
-
+        System.out.println("💾 Guardando datos en " + path + ": " + data);
         try (Writer writer = new FileWriter(path)) {
-            gson.toJson((data == null || data.isEmpty()) ? List.of() : data, writer);
+            gson.toJson((data == null || data.isEmpty()) ? new ArrayList<>() : data, writer);
             System.out.println("✅ Datos guardados correctamente en " + path);
         } catch (IOException e) {
             System.err.println("❌ Error al guardar datos en JSON: " + e.getMessage());
@@ -86,7 +103,6 @@ public class DataSerializer {
 
     private <T> ObservableList<T> deserializeGeneric(Type listType, String path) {
         File file = new File(path);
-
         if (!file.exists() || file.length() == 0) {
             System.out.println("⚠️ Archivo JSON vacío o no encontrado: " + path);
             return FXCollections.observableArrayList();
@@ -94,16 +110,24 @@ public class DataSerializer {
 
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             List<T> data = gson.fromJson(reader, listType);
-
             if (data == null) {
                 System.out.println("⚠️ El JSON no contiene datos válidos.");
                 return FXCollections.observableArrayList();
             }
 
+            // Recalcular precioParaVender para productos después de deserializar
+            if (listType.getTypeName().contains("Productos")) {
+                for (T item : data) {
+                    if (item instanceof Productos) {
+                        ((Productos) item).calcularPrecioVenta();
+                    }
+                }
+            }
+
             System.out.println("📂 Datos leídos desde JSON: " + data.size() + " elementos");
             return FXCollections.observableArrayList(data);
         } catch (Exception e) {
-            System.err.println("❌ Error al leer el JSON: " + e.getMessage());
+            System.err.println("❌ Error al leer el JSON desde " + path + ": " + e.getMessage());
             return FXCollections.observableArrayList();
         }
     }

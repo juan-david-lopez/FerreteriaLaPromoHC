@@ -31,10 +31,15 @@ public class HelloApplication extends Application {
         // Colocar los productos en el DataModel global
         DataModel.getProductos().setAll(listaProductos);
 
+        // Inicializar DataModel para cargar facturas
+        DataModel dataModel = DataModel.getInstance();
+        dataModel.inicializar();
+        System.out.println("✅ Facturas cargadas al iniciar la aplicación: " + DataModel.getFacturas().size());
+
         try {
             FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/tiendaGUI/hello-view.fxml"));
-            Scene scene = new Scene(fxmlLoader.load(), 600, 390);
-            stage.setTitle("Tienda");
+            Scene scene = new Scene(fxmlLoader.load(), 600, 600);
+            stage.setTitle("Ferreteria La Promo H&C");
             stage.setScene(scene);
             stage.show();
         } catch (IOException e) {

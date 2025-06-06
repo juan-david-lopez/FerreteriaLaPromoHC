@@ -6,39 +6,96 @@
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.ToolBar?>
+<?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.text.Font?>
 
-<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="466.0" prefWidth="694.0" style="-fx-background-color: e3e2e9;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.tiendaGUI.Controllers.InventarioController">
-   <children>
-       <TableView fx:id="tablaNumero1" layoutX="102.0" layoutY="114.0" prefHeight="200.0" prefWidth="473.0" style="-fx-background-color: ece8f7;">
-           <columns>
-               <TableColumn fx:id="columnaNombre" prefWidth="120.4000244140625" text="Nombre" />
-               <TableColumn fx:id="columnaPrecio" prefWidth="120.40003967285156" text="Valor" />
-               <TableColumn fx:id="columnaCantidad" prefWidth="120.800048828125" text="Cantidad" />
-               <TableColumn fx:id="columnaId" prefWidth="120.800048828125" text="idProducto" />
-           </columns>
-       </TableView>
-      <Pane layoutX="25.0" layoutY="16.0" prefHeight="90.0" prefWidth="643.0" style="-fx-background-color: #90B1DB;">
-         <children>
-            <Label alignment="CENTER" layoutX="13.0" layoutY="15.0" prefHeight="66.0" prefWidth="623.0" text="TIENDA CASTILLO ">
-               <font>
-                  <Font size="21.0" />
-               </font>
-            </Label>
-         </children>
-      </Pane>
-      <ToolBar layoutX="25.0" layoutY="397.0" prefHeight="40.0" prefWidth="632.0" style="-fx-background-color: #90B1DB;">
-         <items>
-            <Button fx:id="btnNuevo" mnemonicParsing="false" onAction="#presionarBotonNuevo" text="Nuevo" />
-            <Button fx:id="btnActualizar" mnemonicParsing="false" onAction="#presionarBotonActualizar" text="Actualizar">
+<AnchorPane prefHeight="541.0" prefWidth="857.0" style="-fx-background-color: #e3e2e9;" stylesheets="@css/estilos.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.tiendaGUI.Controllers.InventarioController">
+
+    <children>
+        <!-- Encabezado -->
+        <Pane layoutX="-1.6" prefHeight="90.0" prefWidth="857.0" style="-fx-background-color: #90B1DB;">
+            <children>
+                <Label alignment="CENTER" layoutX="20.0" layoutY="12.0" prefHeight="66.0" prefWidth="817.0" text="Ferreteria La promo H&amp;C">
+                    <font>
+                        <Font size="21.0" />
+                    </font>
                <cursor>
-                  <Cursor fx:constant="OPEN_HAND" />
+                  <Cursor fx:constant="DEFAULT" />
                </cursor>
-            </Button>
-            <Button fx:id="btnEliminar" mnemonicParsing="false" onAction="#presionarBotonEliminar" text="Eliminar" />
-            <Button fx:id="btnVolver" mnemonicParsing="false" onAction="#volver" text="Volver" />
-         </items>
-      </ToolBar>
-   </children>
-</Pane>
+                </Label>
+            </children>
+            <AnchorPane.topAnchor>0.0</AnchorPane.topAnchor>
+            <AnchorPane.leftAnchor>-2.0</AnchorPane.leftAnchor>
+            <AnchorPane.rightAnchor>2.0</AnchorPane.rightAnchor>
+        </Pane>
+
+        <!-- Tabla -->
+        <TableView fx:id="tablaNumero1" style="-fx-background-color: #E0E0E0;">
+            <columns>
+                <TableColumn fx:id="columnaNombre" prefWidth="150.0" text="Nombre" />
+                <TableColumn fx:id="columnaPrecio" minWidth="0.0" prefWidth="150.0" text="Costo" />
+                <TableColumn fx:id="columnaPrecioVenta" minWidth="0.0" prefWidth="150.0" text="Precio Venta" />
+                <TableColumn fx:id="columnaCantidad" prefWidth="150.0" text="Cantidad" />
+                <TableColumn fx:id="columnaId" prefWidth="150.0" text="idProducto" />
+            </columns>
+            <AnchorPane.topAnchor>90.0</AnchorPane.topAnchor>
+            <AnchorPane.leftAnchor>20.0</AnchorPane.leftAnchor>
+            <AnchorPane.rightAnchor>20.0</AnchorPane.rightAnchor>
+            <AnchorPane.bottomAnchor>50.0</AnchorPane.bottomAnchor>
+        </TableView>
+
+        <!-- Barra de botones -->
+        <ToolBar layoutX="0.8" prefWidth="856.0" style="-fx-background-color: #90B1DB;">
+            <items>
+                <Button fx:id="btnNuevo" onAction="#presionarBotonNuevo" style="-fx-background-color: #A9C6E8;" text="Nuevo">
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor>
+               <font>
+                  <Font name="Maiandra GD" size="12.0" />
+               </font></Button>
+                <Button fx:id="btnActualizar" onAction="#presionarBotonActualizar" style="-fx-background-color: #A8E6CF;" text="Actualizar">
+                    <cursor>
+                        <Cursor fx:constant="HAND" />
+                    </cursor>
+               <font>
+                  <Font name="Maiandra GD" size="12.0" />
+               </font>
+                </Button>
+                <Button fx:id="btnEliminar" onAction="#presionarBotonEliminar" style="-fx-background-color: #D46A6A; -fx-text-fill: white;" text="Eliminar">
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor>
+               <font>
+                  <Font name="Maiandra GD" size="12.0" />
+               </font></Button>
+                <Button fx:id="btnVolver" onAction="#volver" style="-fx-background-color: #A8E6CF;" text="Volver">
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor>
+               <font>
+                  <Font name="Maiandra GD" size="12.0" />
+               </font></Button>
+                <Button fx:id="BtnBuscar" onAction="#MetodoBusquedaTablaCarrito" style="-fx-background-color: #A9C6E8;" text="Buscar">
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor>
+               <font>
+                  <Font name="Maiandra GD" size="12.0" />
+               </font></Button>
+                <Button fx:id="btnRestablecerTabla" onAction="#RestablecerTablaAction" style="-fx-background-color: #A9C6E8;" text="Restablecertabla">
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor>
+               <font>
+                  <Font name="Maiandra GD" size="12.0" />
+               </font></Button>
+            </items>
+            <AnchorPane.bottomAnchor>0.0</AnchorPane.bottomAnchor>
+            <AnchorPane.leftAnchor>1.0</AnchorPane.leftAnchor>
+            <AnchorPane.rightAnchor>0.0</AnchorPane.rightAnchor>
+            <prefHeight>40.0</prefHeight>
+        </ToolBar>
+    </children>
+</AnchorPane>

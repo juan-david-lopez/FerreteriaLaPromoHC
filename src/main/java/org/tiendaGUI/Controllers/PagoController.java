@@ -1,38 +1,44 @@
 package org.tiendaGUI.Controllers;
 
 import LogicaTienda.Data.DataModel;
+import LogicaTienda.Model.Factura;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.TextFieldTableCell;
 import org.tiendaGUI.DTO.CarritoDTO;
 import javax.swing.*;
-import LogicaTienda.Model.Factura;
+
 import LogicaTienda.Model.Pago;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import org.tiendaGUI.utils.PDFGenerator;
 
+import java.awt.*;
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.UUID;
 
+import static org.tiendaGUI.Controllers.loader.ViewLoader.mostrarAlerta;
+
 public class PagoController implements Initializable {
+    private final PDFGenerator pdfGenerator = new PDFGenerator();
     @FXML private Label lblTotalCarrito;
     @FXML private Label lblCambio;
     @FXML private Label lblMontoRequerido;
@@ -78,7 +84,7 @@ public class PagoController implements Initializable {
         });
         // Cargar pagos actuales
         tablaPagos.setItems(DataModel.getPagos());
-
+        tablaPagos.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         // Configurar combo de métodos
         metodoPagoCombo.setItems(FXCollections.observableArrayList(
                 "Efectivo", "Tarjeta", "Transferencia", "Otro"
@@ -214,4 +220,69 @@ public class PagoController implements Initializable {
 
     private void showError(String msg) { new Alert(Alert.AlertType.ERROR, msg).showAndWait(); }
     private void showInfo(String msg)  { new Alert(Alert.AlertType.INFORMATION, msg).showAndWait(); }
+
+    public void imprimirPDF(ActionEvent actionEvent) {
+        Factura facturaSeleccionada = obtenerFacturaDesdePagoSeleccionado();
+
+        if (facturaSeleccionada == null) {
+            mostrarAlerta("cuidado","Debes seleccionar un pago relacionado a una factura.", Alert.AlertType.WARNING);
+            return;
+        }
+
+        try {
+            // Obtener la ruta de la carpeta de Descargas
+            String userHome = System.getProperty("user.home");
+            File downloadsDir = new File(userHome, "Downloads");
+            
+            // Si no existe la carpeta Downloads, intentar con Descargas (español)
+            if (!downloadsDir.exists() || !downloadsDir.isDirectory()) {
+                downloadsDir = new File(userHome, "Descargas");
+                // Si tampoco existe, crear la carpeta
+                if (!downloadsDir.exists()) {
+                    boolean created = downloadsDir.mkdirs();
+                    if (!created) {
+                        throw new IOException("No se pudo crear la carpeta de descargas");
+                    }
+                }
+            }
+
+            // Crear el nombre del archivo con timestamp
+            String timeStamp = java.time.LocalDateTime.now().format(
+                java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
+            );
+            String fileName = String.format("Factura_%s_%s.pdf", facturaSeleccionada.getId(), timeStamp);
+            File pdfFile = new File(downloadsDir, fileName);
+
+            // Generar el PDF directamente en la carpeta de descargas
+            PDFGenerator.generarFacturaPDF(facturaSeleccionada);
+
+            // Mostrar mensaje de éxito con la ruta del archivo
+            mostrarAlerta("✅ Success", "✅ Factura descargada exitosamente en: " + pdfFile.getAbsolutePath(), Alert.AlertType.INFORMATION);
+            
+            // Abrir el archivo automáticamente si es posible
+            if (Desktop.isDesktopSupported()) {
+                try {
+                    Desktop.getDesktop().open(pdfFile);
+                } catch (Exception e) {
+                    // Si no se puede abrir, solo mostramos el mensaje de éxito
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            mostrarAlerta("❌ Error","❌ Error al guardar la factura: " + e.getMessage(), Alert.AlertType.ERROR);
+        }
+    }
+
+    private Factura obtenerFacturaDesdePagoSeleccionado() {
+        Pago pago = tablaPagos.getSelectionModel().getSelectedItem();
+        if (pago == null) return null;
+
+        for (Factura f : DataModel.getFacturas()) {
+            if (f.getPago().getId().equals(pago.getId())) {
+                return f;
+            }
+        }
+        return null;
+    }
+
 }

@@ -9,7 +9,7 @@
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane prefHeight="488.0" prefWidth="708.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.tiendaGUI.Controllers.VentasController">
+<AnchorPane prefHeight="488.0" prefWidth="708.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.tiendaGUI.Controllers.VentasController" stylesheets="@css/estilos.css">
    <children>
       <FlowPane alignment="TOP_CENTER" layoutX="14.0" layoutY="14.0" prefHeight="479.0" prefWidth="564.0" rowValignment="TOP">
          <children>

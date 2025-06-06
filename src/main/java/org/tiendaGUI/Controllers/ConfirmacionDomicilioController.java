@@ -4,6 +4,8 @@ import LogicaTienda.Data.DataModel;
 import LogicaTienda.Data.DataSerializer;
 import LogicaTienda.Model.Domicilio;
 import LogicaTienda.Model.Factura;
+import javafx.beans.Observable;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -37,10 +39,13 @@ public class ConfirmacionDomicilioController implements Initializable {
 
     private DomicilioDTO domicilioDTO;
     private final DataSerializer serializer = new DataSerializer("domicilios.json");
+    private final DataModel dataModel = new DataModel();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Esperando datos para mostrar
+        dataModel.cargarFacturas();
+        dataModel.cargarDomicilios();
+        System.out.println("✅ DataModel inicializado correctamente");
     }
 
     /**
@@ -68,6 +73,7 @@ public class ConfirmacionDomicilioController implements Initializable {
     @FXML
     private void btnContinuarAction(ActionEvent event) {
         if (!validarCampos()) return;
+
         // Convertir DTO a modelo
         Domicilio domicilio = new Domicilio(
                 domicilioDTO.getDireccion(),
@@ -78,12 +84,19 @@ public class ConfirmacionDomicilioController implements Initializable {
                 LocalDate.parse(domicilioDTO.getFechaEntrega()),
                 domicilioDTO.getIdFactura()
         );
-        // Guardar domicilio
-        DataModel.getDomicilios().add(domicilio);
-        serializer.serializeDomicilios(DataModel.getDomicilios());
-        // Ir a carrito
+
+        // Leer los domicilios actuales desde el archivo (por si DataModel está desactualizado)
+        ObservableList<Domicilio> domiciliosActuales = serializer.deserializeDomicilios();
+
+        domiciliosActuales.add(domicilio);
+
+        serializer.serializeDomicilios(domiciliosActuales);
+
+        dataModel.setDomicilioActual(domicilio);
+
         navegar(event, "/org/tiendaGUI/pedido-view.fxml", "Carrito de Compras");
     }
+
 
     @FXML
     private void btnVolverAction(ActionEvent event) {
@@ -112,8 +125,9 @@ public class ConfirmacionDomicilioController implements Initializable {
         if (fecha.isBefore(LocalDate.now())) {
             new Alert(Alert.AlertType.ERROR, "Fecha de entrega inválida").showAndWait(); return false;
         }
-        List<Factura> facs = DataModel.getFacturas();
-        if (!facs.stream().anyMatch(f -> f.getId().equals(domicilioDTO.getIdFactura()))) {
+        List<Factura> facs = dataModel.getFacturas();
+        String idFacturaIngresado = domicilioDTO.getIdFactura().trim().toLowerCase();
+        if (!facs.stream().anyMatch(f -> f.getId().trim().toLowerCase().equals(idFacturaIngresado))) {
             new Alert(Alert.AlertType.ERROR, "Factura no encontrada").showAndWait(); return false;
         }
         return true;

@@ -2,8 +2,10 @@ package org.tiendaGUI.Controllers;
 
 import LogicaTienda.Data.DataSerializer;
 import LogicaTienda.Data.DataModel;
+import LogicaTienda.Forms.SearchForm;
 import LogicaTienda.Model.Productos;
 import LogicaTienda.Forms.formularioProduct;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -21,11 +23,11 @@ import java.util.ResourceBundle;
 
 public class InventarioController implements Initializable {
     private final DataSerializer dataSerializer = new DataSerializer("productos.json");
-
     @FXML private Button btnNuevo, btnVolver, btnEliminar, btnActualizar;
     @FXML private TableView<Productos> tablaNumero1;
     @FXML private TableColumn<Productos, String> columnaNombre;
     @FXML private TableColumn<Productos, Double> columnaPrecio;
+    @FXML private TableColumn<Productos, Double> columnaPrecioVenta;
     @FXML private TableColumn<Productos, Integer> columnaCantidad;
     @FXML private TableColumn<Productos, String> columnaId;
 
@@ -85,6 +87,7 @@ public class InventarioController implements Initializable {
     public void initialize(URL url, ResourceBundle resourceBundle) {
         columnaNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
         columnaPrecio.setCellValueFactory(new PropertyValueFactory<>("precio"));
+        columnaPrecioVenta.setCellValueFactory(new PropertyValueFactory<>("precioParaVender"));
         columnaCantidad.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
         columnaId.setCellValueFactory(new PropertyValueFactory<>("idProducto"));
 
@@ -125,4 +128,22 @@ public class InventarioController implements Initializable {
         tablaNumero1.setItems(productos);
         System.out.println("📦 Productos cargados en InventarioController: " + productos.size());
     }
+
+
+    @FXML
+    private void MetodoBusquedaTablaCarrito() {
+        SearchForm form = new SearchForm(DataModel.getProductos());
+        form.setOnBusquedaFinalizada(filtrados -> {
+            tablaNumero1.setItems(FXCollections.observableArrayList(filtrados));
+            tablaNumero1.refresh();
+        });
+        form.showAndWait();
+    }
+
+    @FXML
+    private void RestablecerTablaAction() {
+        tablaNumero1.setItems(DataModel.getProductos());
+        tablaNumero1.refresh();
+    }
+
 }
