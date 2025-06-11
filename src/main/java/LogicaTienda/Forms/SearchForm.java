@@ -36,10 +36,16 @@ public class SearchForm extends Stage {
 
         // Configurar tabla resultados (solo columnas relevantes)
         TableColumn<Productos, String> colId = new TableColumn<>("ID");
-        colId.setCellValueFactory(cell -> new javafx.beans.property.SimpleStringProperty(cell.getValue().getIdProducto()));
+        colId.setCellValueFactory(cellData -> {
+            Productos producto = cellData.getValue();
+            return new javafx.beans.property.SimpleStringProperty(producto != null ? producto.getIdProducto() : "");
+        });
 
         TableColumn<Productos, String> colNombre = new TableColumn<>("Nombre");
-        colNombre.setCellValueFactory(cell -> new javafx.beans.property.SimpleStringProperty(cell.getValue().getNombre()));
+        colNombre.setCellValueFactory(cellData -> {
+            Productos producto = cellData.getValue();
+            return new javafx.beans.property.SimpleStringProperty(producto != null ? producto.getNombre() : "");
+        });
 
         tablaResultados.getColumns().addAll(colId, colNombre);
 

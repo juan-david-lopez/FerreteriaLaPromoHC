@@ -1,7 +1,7 @@
 package LogicaTienda.Forms;
 
-import LogicaTienda.Data.DataSerializer;
 import LogicaTienda.Model.Productos;
+import LogicaTienda.Services.ProductoService;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -10,16 +10,17 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.collections.ObservableList;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class formularioProduct extends Stage {
     private TextField idProductoField, nombreField, precioField, porcentajeGananciaField, cantidadField, stockField;
     private Button submitButton;
     private ObservableList<Productos> productos;
-    private DataSerializer dataSerializer;
+    private static final Logger LOGGER = Logger.getLogger(formularioProduct.class.getName());
 
-    public formularioProduct(String titulo, ObservableList<Productos> productos, boolean esEliminacion, DataSerializer dataSerializer, Productos producto) {
+    public formularioProduct(String titulo, ObservableList<Productos> productos, boolean esEliminacion, Object unused, Productos producto) {
         this.productos = productos;
-        this.dataSerializer = dataSerializer;
         setTitle(titulo);
         initModality(Modality.APPLICATION_MODAL);
 
@@ -75,12 +76,15 @@ public class formularioProduct extends Stage {
         }
 
         submitButton.setOnAction(e -> {
-            boolean cambiosRealizados = esEliminacion ? eliminarProducto() : actualizarOAgregarProducto(producto);
-
-            if (cambiosRealizados) {
-                dataSerializer.serializeData(productos);
-                mostrarAlerta("Éxito", "Operación realizada correctamente.", Alert.AlertType.INFORMATION);
-                close();
+            try {
+                boolean cambiosRealizados = esEliminacion ? eliminarProducto() : actualizarOAgregarProducto(producto);
+                if (cambiosRealizados) {
+                    mostrarAlerta("Éxito", "Operación realizada correctamente.", Alert.AlertType.INFORMATION);
+                    close();
+                }
+            } catch (Exception ex) {
+                LOGGER.log(Level.SEVERE, "Error en la operación del formulario", ex);
+                mostrarAlerta("Error", "Ocurrió un error: " + ex.getMessage(), Alert.AlertType.ERROR);
             }
         });
 
@@ -95,7 +99,7 @@ public class formularioProduct extends Stage {
 
         // Validación de valores numéricos
         double precio;
-        double porcentajeGanancia = 0;
+        double porcentajeGanancia = 20.0; // Valor por defecto del 20%
         int cantidad, stock;
 
         if (!validarCamposNumericos(precioField, cantidadField, stockField)) {
@@ -103,34 +107,70 @@ public class formularioProduct extends Stage {
         }
 
         precio = Double.parseDouble(precioField.getText().trim());
-        if (!porcentajeGananciaField.getText().trim().isEmpty()) {
-            porcentajeGanancia = Double.parseDouble(porcentajeGananciaField.getText().trim());
+        String porcentajeText = porcentajeGananciaField.getText().trim();
+        if (!porcentajeText.isEmpty()) {
+            try {
+                porcentajeGanancia = Double.parseDouble(porcentajeText);
+                if (porcentajeGanancia < 0) {
+                    return mostrarError("El porcentaje de ganancia no puede ser negativo.");
+                }
+            } catch (NumberFormatException e) {
+                return mostrarError("El porcentaje de ganancia debe ser un número válido.");
+            }
         }
         cantidad = Integer.parseInt(cantidadField.getText().trim());
         stock = Integer.parseInt(stockField.getText().trim());
 
-        if (productoExistente != null) {
-            // Modo edición
-            productoExistente.setNombre(nombre);
-            productoExistente.setPrecio(precio);
-            productoExistente.setPorcentajeGanancia(porcentajeGanancia);
-            productoExistente.setCantidad(cantidad);
-            productoExistente.setStock(stock);
-            productoExistente.calcularPrecioVenta();
-        } else {
-            // Modo creación
-            String idProducto = idProductoField.getText().trim();
-            if (idProducto.isEmpty()) {
-                return mostrarError("El ID del producto no puede estar vacío.");
-            }
+        try {
+            if (productoExistente != null) {
+                // Modo edición
+                productoExistente.setNombre(nombre);
+                productoExistente.setPrecio(precio);
+                productoExistente.setPorcentajeGanancia(porcentajeGanancia);
+                productoExistente.setCantidad(cantidad);
+                productoExistente.setStock(stock);
+                productoExistente.calcularPrecioVenta();
+                
+                // Actualizar en MongoDB
+                try {
+                    ProductoService.actualizarProducto(productoExistente);
+                } catch (Exception e) {
+                    LOGGER.log(Level.SEVERE, "Error al actualizar el producto", e);
+                    return mostrarError("No se pudo actualizar el producto en la base de datos: " + e.getMessage());
+                }
+            } else {
+                // Modo creación
+                String idProducto = idProductoField.getText().trim();
+                if (idProducto.isEmpty()) {
+                    return mostrarError("El ID del producto no puede estar vacío.");
+                }
 
-            if (productos.stream().anyMatch(p -> p.getIdProducto().equals(idProducto))) {
-                return mostrarError("Ya existe un producto con este ID.");
-            }
+                // Verificar si el ID ya existe en MongoDB
+                if (ProductoService.buscarProductoPorId(idProducto) != null) {
+                    return mostrarError("Ya existe un producto con este ID.");
+                }
 
-            productos.add(new Productos(idProducto, nombre, precio, porcentajeGanancia, cantidad, stock));
+                Productos nuevoProducto = new Productos(idProducto, nombre, precio, porcentajeGanancia, cantidad, stock);
+                nuevoProducto.calcularPrecioVenta();
+                
+                // Guardar en MongoDB
+                try {
+                    ProductoService.guardarProducto(nuevoProducto);
+                } catch (Exception e) {
+                    LOGGER.log(Level.SEVERE, "Error al guardar el producto", e);
+                    return mostrarError("No se pudo guardar el producto en la base de datos: " + e.getMessage());
+                }
+                
+                // Actualizar la lista local si es necesario
+                if (productos != null) {
+                    productos.add(nuevoProducto);
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al guardar el producto", e);
+            return mostrarError("Error al guardar el producto: " + e.getMessage());
         }
-        return true;
     }
 
     private boolean eliminarProducto() {
@@ -139,21 +179,45 @@ public class formularioProduct extends Stage {
             return mostrarError("Debes ingresar un ID de producto válido.");
         }
 
-        Optional<Productos> productoAEliminar = productos.stream()
-                .filter(p -> p.getIdProducto().equals(idProducto))
-                .findFirst();
+        try {
+            // Verificar si el producto existe
+            if (ProductoService.buscarProductoPorId(idProducto) == null) {
+                return mostrarError("No se encontró un producto con ese ID.");
+            }
 
-        if (productoAEliminar.isPresent()) {
-            productos.remove(productoAEliminar.get());
-            System.out.println("✅ Producto eliminado correctamente: " + idProducto);
-            return true;
-        } else {
-            return mostrarError("No se encontró un producto con ese ID.");
+            // Mostrar confirmación
+            Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
+            confirmacion.setTitle("Confirmar eliminación");
+            confirmacion.setHeaderText("¿Está seguro de eliminar este producto?");
+            confirmacion.setContentText("Esta acción no se puede deshacer.");
+
+            Optional<ButtonType> resultado = confirmacion.showAndWait();
+            if (resultado.isPresent() && resultado.get() == ButtonType.OK) {
+                // Eliminar de MongoDB
+                ProductoService.eliminarProducto(idProducto);
+                
+                // Actualizar la lista local si es necesario
+                if (productos != null) {
+                    productos.removeIf(p -> p.getIdProducto().equals(idProducto));
+                }
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al eliminar el producto", e);
+            return mostrarError("Error al eliminar el producto: " + e.getMessage());
         }
     }
 
     private boolean validarCamposNumericos(TextField precioField, TextField cantidadField, TextField stockField) {
         try {
+            // Validar que los campos no estén vacíos
+            if (precioField.getText().trim().isEmpty() || 
+                cantidadField.getText().trim().isEmpty() || 
+                stockField.getText().trim().isEmpty()) {
+                return mostrarError("Todos los campos numéricos son obligatorios.");
+            }
+            
             double precio = Double.parseDouble(precioField.getText().trim());
             double porcentajeGanancia = 0;
             if (!porcentajeGananciaField.getText().trim().isEmpty()) {
@@ -172,19 +236,25 @@ public class formularioProduct extends Stage {
     }
 
     private boolean mostrarError(String mensaje) {
-        mostrarAlerta("Error", mensaje);
+        mostrarAlerta("Error", mensaje, Alert.AlertType.ERROR);
         return false;
     }
 
     private void mostrarAlerta(String titulo, String mensaje) {
-        mostrarAlerta(titulo, mensaje, Alert.AlertType.ERROR);
+        mostrarAlerta(titulo, mensaje, Alert.AlertType.INFORMATION);
     }
 
     private void mostrarAlerta(String titulo, String mensaje, Alert.AlertType tipo) {
-        Alert alerta = new Alert(tipo);
-        alerta.setTitle(titulo);
-        alerta.setHeaderText(null);
-        alerta.setContentText(mensaje);
-        alerta.showAndWait();
+        try {
+            Alert alerta = new Alert(tipo);
+            alerta.setTitle(titulo);
+            alerta.setHeaderText(null);
+            alerta.setContentText(mensaje);
+            alerta.showAndWait();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al mostrar la alerta", e);
+            // Si hay un error mostrando la alerta, al menos mostrarlo en consola
+            System.err.println(titulo + ": " + mensaje);
+        }
     }
 }

@@ -1,14 +1,15 @@
 package org.tiendaGUI.Controllers;
 
-import LogicaTienda.Data.DataModel;
-import LogicaTienda.Data.DataSerializer;
 import LogicaTienda.Model.Productos;
+import LogicaTienda.Services.ProductoService;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ToolBar;
@@ -18,9 +19,12 @@ import javafx.stage.Stage;
 import java.io.IOException;
 import java.net.URL;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class HelloController {
-
+    private static final Logger LOGGER = Logger.getLogger(HelloController.class.getName());
+    
     @FXML private Button botonEstadisticas, botonInventario, botonVentas;
     @FXML private Pane imagenDelMedio, panelPrincipal;
     @FXML private ToolBar panelAbajo;
@@ -28,28 +32,37 @@ public class HelloController {
 
     /**
      * Inicializa el controlador principal del sistema.
-     * Carga productos si aún no están en memoria.
+     * Carga productos desde MongoDB.
      */
     @FXML
     public void initialize() {
-        System.out.println("📦 HelloController inicializado.");
-        cargarProductosSiNoEstanEnMemoria();
+        LOGGER.info("📦 HelloController inicializado");
+        cargarProductosDesdeMongoDB();
     }
 
-    private void cargarProductosSiNoEstanEnMemoria() {
-        if (DataModel.getProductos().isEmpty()) {
-            System.out.println("📁 Cargando productos desde JSON...");
-            DataSerializer serializer = new DataSerializer("productos.json");
-            List<Productos> productos = serializer.deserializeData();
-            if (productos != null) {
-                DataModel.getProductos().setAll(productos);
-                System.out.println("✅ Productos cargados: " + productos.size());
-            } else {
-                System.out.println("⚠️ No se pudieron cargar productos.");
+    private void cargarProductosDesdeMongoDB() {
+        new Thread(() -> {
+            try {
+                LOGGER.info("📡 Cargando productos desde MongoDB...");
+                List<Productos> productos = ProductoService.obtenerTodosLosProductos();
+                
+                Platform.runLater(() -> {
+                    if (productos != null && !productos.isEmpty()) {
+                        LOGGER.info("✅ " + productos.size() + " productos cargados desde MongoDB");
+                    } else {
+                        LOGGER.info("ℹ️ No se encontraron productos en la base de datos");
+                        mostrarAlerta("Información", "No hay productos disponibles en la base de datos.", AlertType.INFORMATION);
+                    }
+                });
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "❌ Error al cargar productos desde MongoDB", e);
+                Platform.runLater(() -> 
+                    mostrarAlerta("Error de conexión", 
+                                "No se pudieron cargar los productos desde la base de datos.\nError: " + e.getMessage(), 
+                                AlertType.ERROR)
+                );
             }
-        } else {
-            System.out.println("✅ Productos ya presentes en memoria: " + DataModel.getProductos().size());
-        }
+        }).start();
     }
 
     @FXML
@@ -78,33 +91,50 @@ public class HelloController {
     private void cambiarVentana(ActionEvent event, String fxmlFile, String titulo) {
         try {
             URL url = getClass().getResource("/org/tiendaGUI/" + fxmlFile);
-            System.out.println("🔄 Cargando vista: " + fxmlFile + " → " + url);
-
+            if (url == null) {
+                throw new IOException("No se pudo encontrar el archivo: " + fxmlFile);
+            }
+            
+            LOGGER.info("🔄 Cargando vista: " + fxmlFile);
             FXMLLoader loader = new FXMLLoader(url);
             Parent root = loader.load();
 
-            // Si es Inventario, pasamos la lista
-            Object controller = loader.getController();
-            if (controller instanceof InventarioController) {
-                ((InventarioController) controller).bindListaProductos(DataModel.getProductos());
-            }
+            // Los controladores ahora cargarán sus propios datos desde MongoDB
+            // No es necesario pasar la lista de productos
 
             Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root));
             stage.setTitle(titulo);
             stage.show();
-            System.out.println("✅ Vista cargada: " + titulo);
-        } catch (IOException | NullPointerException e) {
-            e.printStackTrace();
-            mostrarAlerta("Error", "No se pudo cargar la vista: " + fxmlFile, Alert.AlertType.ERROR);
+            LOGGER.info("✅ Vista cargada: " + titulo);
+            
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error al cargar la vista: " + fxmlFile, e);
+            mostrarAlerta("Error", "No se pudo cargar la vista: " + fxmlFile + "\nError: " + e.getMessage(), AlertType.ERROR);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error inesperado al cambiar de ventana", e);
+            mostrarAlerta("Error", "Error inesperado al cambiar de ventana: " + e.getMessage(), AlertType.ERROR);
         }
     }
 
-    private void mostrarAlerta(String titulo, String mensaje, Alert.AlertType tipo) {
-        Alert alerta = new Alert(tipo);
-        alerta.setTitle(titulo);
-        alerta.setHeaderText(null);
-        alerta.setContentText(mensaje);
-        alerta.showAndWait();
+    private void mostrarAlerta(String titulo, String mensaje, AlertType tipo) {
+        try {
+            Platform.runLater(() -> {
+                try {
+                    Alert alerta = new Alert(tipo);
+                    alerta.setTitle(titulo);
+                    alerta.setHeaderText(null);
+                    alerta.setContentText(mensaje);
+                    alerta.showAndWait();
+                } catch (Exception e) {
+                    LOGGER.log(Level.SEVERE, "Error al mostrar alerta", e);
+                    // Si falla la alerta, al menos lo registramos
+                    System.err.println(titulo + ": " + mensaje);
+                }
+            });
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error inesperado al mostrar alerta", e);
+            System.err.println("[ERROR] " + titulo + ": " + mensaje);
+        }
     }
 }

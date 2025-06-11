@@ -1,11 +1,8 @@
 package org.tiendaGUI.Controllers;
 
-import LogicaTienda.Data.DataModel;
-import LogicaTienda.Data.DataSerializer;
 import LogicaTienda.Model.Domicilio;
-import LogicaTienda.Model.Factura;
-import javafx.beans.Observable;
-import javafx.collections.ObservableList;
+import LogicaTienda.Services.DomicilioService;
+import LogicaTienda.Services.FacturaService;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -19,9 +16,9 @@ import javafx.scene.control.Label;
 import javafx.stage.Stage;
 import org.tiendaGUI.DTO.DomicilioDTO;
 
+import java.io.IOException;
 import java.net.URL;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 
@@ -38,14 +35,10 @@ public class ConfirmacionDomicilioController implements Initializable {
     @FXML private Button btnVolver;
 
     private DomicilioDTO domicilioDTO;
-    private final DataSerializer serializer = new DataSerializer("domicilios.json");
-    private final DataModel dataModel = new DataModel();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        dataModel.cargarFacturas();
-        dataModel.cargarDomicilios();
-        System.out.println("✅ DataModel inicializado correctamente");
+        System.out.println("✅ ConfirmacionDomicilioController inicializado");
     }
 
     /**
@@ -74,27 +67,29 @@ public class ConfirmacionDomicilioController implements Initializable {
     private void btnContinuarAction(ActionEvent event) {
         if (!validarCampos()) return;
 
-        // Convertir DTO a modelo
-        Domicilio domicilio = new Domicilio(
-                domicilioDTO.getDireccion(),
-                domicilioDTO.getReferenciaDireccion(),
-                domicilioDTO.getNumeroPostal(),
-                domicilioDTO.getNumeroApartamento(),
-                domicilioDTO.getNumeroCelular(),
-                LocalDate.parse(domicilioDTO.getFechaEntrega()),
-                domicilioDTO.getIdFactura()
-        );
+        try {
+            // Convertir DTO a modelo
+            Domicilio domicilio = new Domicilio(
+                    domicilioDTO.getDireccion(),
+                    domicilioDTO.getReferenciaDireccion(),
+                    domicilioDTO.getNumeroPostal(),
+                    domicilioDTO.getNumeroApartamento(),
+                    domicilioDTO.getNumeroCelular(),
+                    LocalDate.parse(domicilioDTO.getFechaEntrega()),
+                    domicilioDTO.getIdFactura(),
+                    domicilioDTO.getIdFactura() // Usamos el ID de factura como clienteIdentificacion
+            );
 
-        // Leer los domicilios actuales desde el archivo (por si DataModel está desactualizado)
-        ObservableList<Domicilio> domiciliosActuales = serializer.deserializeDomicilios();
+            // Guardar en MongoDB
+            DomicilioService.guardarDomicilio(domicilio);
 
-        domiciliosActuales.add(domicilio);
-
-        serializer.serializeDomicilios(domiciliosActuales);
-
-        dataModel.setDomicilioActual(domicilio);
-
-        navegar(event, "/org/tiendaGUI/pedido-view.fxml", "Carrito de Compras");
+            // Navegar a la siguiente vista
+            navegar(event, "/org/tiendaGUI/pedido-view.fxml", "Carrito de Compras");
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            new Alert(Alert.AlertType.ERROR, "Error al guardar el domicilio: " + e.getMessage()).showAndWait();
+        }
     }
 
 
@@ -117,31 +112,59 @@ public class ConfirmacionDomicilioController implements Initializable {
     }
 
     private boolean validarCampos() {
-        if (domicilioDTO == null) return false;
+        if (domicilioDTO == null) {
+            new Alert(Alert.AlertType.ERROR, "No hay datos de domicilio para validar").showAndWait();
+            return false;
+        }
+        
+        // Validar número de celular
         if (!Pattern.matches("\\d{10}", domicilioDTO.getNumeroCelular())) {
-            new Alert(Alert.AlertType.ERROR, "El celular debe tener 10 dígitos").showAndWait(); return false;
+            new Alert(Alert.AlertType.ERROR, "El celular debe tener 10 dígitos").showAndWait();
+            return false;
         }
-        LocalDate fecha = LocalDate.parse(domicilioDTO.getFechaEntrega());
-        if (fecha.isBefore(LocalDate.now())) {
-            new Alert(Alert.AlertType.ERROR, "Fecha de entrega inválida").showAndWait(); return false;
+        
+        // Validar fecha de entrega
+        try {
+            LocalDate fecha = LocalDate.parse(domicilioDTO.getFechaEntrega());
+            if (fecha.isBefore(LocalDate.now())) {
+                new Alert(Alert.AlertType.ERROR, "La fecha de entrega no puede ser en el pasado").showAndWait();
+                return false;
+            }
+        } catch (Exception e) {
+            new Alert(Alert.AlertType.ERROR, "Formato de fecha inválido").showAndWait();
+            return false;
         }
-        List<Factura> facs = dataModel.getFacturas();
-        String idFacturaIngresado = domicilioDTO.getIdFactura().trim().toLowerCase();
-        if (!facs.stream().anyMatch(f -> f.getId().trim().toLowerCase().equals(idFacturaIngresado))) {
-            new Alert(Alert.AlertType.ERROR, "Factura no encontrada").showAndWait(); return false;
+        
+        // Validar que exista la factura
+        try {
+            String idFactura = domicilioDTO.getIdFactura().trim();
+            if (FacturaService.buscarFacturaPorId(idFactura) == null) {
+                new Alert(Alert.AlertType.ERROR, "No se encontró la factura con ID: " + idFactura).showAndWait();
+                return false;
+            }
+        } catch (Exception e) {
+            new Alert(Alert.AlertType.ERROR, "Error al validar la factura: " + e.getMessage()).showAndWait();
+            return false;
         }
+        
         return true;
     }
 
     private void navegar(ActionEvent event, String fxml, String title) {
         try {
-            Parent root = FXMLLoader.load(getClass().getResource(fxml));
+            URL fxmlUrl = getClass().getResource(fxml);
+            if (fxmlUrl == null) {
+                throw new IOException("No se pudo encontrar el archivo FXML: " + fxml);
+            }
+            
+            Parent root = FXMLLoader.load(fxmlUrl);
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root));
             stage.setTitle(title);
             stage.show();
         } catch (Exception e) {
             e.printStackTrace();
+            new Alert(Alert.AlertType.ERROR, "Error al navegar: " + e.getMessage()).showAndWait();
         }
     }
 }

@@ -1,8 +1,8 @@
 package LogicaTienda.Logic;
 
-import LogicaTienda.Data.DataModel;
 import LogicaTienda.Model.Factura;
 import LogicaTienda.Model.Productos;
+import LogicaTienda.Services.FacturaService;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -10,6 +10,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class LogicaEstadistica {
@@ -19,21 +21,26 @@ public class LogicaEstadistica {
         this.listaProductos = (listaProductos != null) ? listaProductos : new ArrayList<>();
     }
 
+    private static final Logger LOGGER = Logger.getLogger(LogicaEstadistica.class.getName());
+    
     // Calcular ventas por día
     public Map<LocalDate, Double> calcularVentasPorDia() {
-        List<Factura> facturas = DataModel.getFacturas()
-                .stream()
-                .filter(f -> !"Anulada".equals(f.getEstado()))
-                .collect(Collectors.toList());
+        try {
+            List<Factura> facturas = FacturaService.obtenerFacturasActivas()
+                    .stream()
+                    .filter(f -> !"Anulada".equals(f.getEstado()))
+                    .collect(Collectors.toList());
 
-        // Agrupar facturas por día y sumar los totales
-        Map<LocalDate, Double> ventasPorDia = facturas.stream()
-                .collect(Collectors.groupingBy(
-                        factura -> factura.getFecha().toLocalDate(),
-                        Collectors.summingDouble(Factura::getTotal)
-                ));
-
-        return ventasPorDia;
+            // Agrupar facturas por día y sumar los totales
+            return facturas.stream()
+                    .collect(Collectors.groupingBy(
+                            factura -> factura.getFecha().toLocalDate(),
+                            Collectors.summingDouble(Factura::getTotal)
+                    ));
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al calcular ventas por día", e);
+            return new HashMap<>();
+        }
     }
 
     // Calcular el promedio de precios de los productos
@@ -88,10 +95,15 @@ public class LogicaEstadistica {
 
     // Calcular el total de ventas sumando todas las facturas (excluyendo anuladas)
     public double calcularTotalVentas() {
-        return DataModel.getFacturas().stream()
-                .filter(f -> !"Anulada".equals(f.getEstado()))
-                .mapToDouble(Factura::getTotal)
-                .sum();
+        try {
+            return FacturaService.obtenerFacturasActivas().stream()
+                    .filter(f -> !"Anulada".equals(f.getEstado()))
+                    .mapToDouble(Factura::getTotal)
+                    .sum();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al calcular el total de ventas", e);
+            return 0.0;
+        }
     }
 
     // Calcular el valor total del inventario (precio de venta * stock para todos los productos)

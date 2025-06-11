@@ -1,16 +1,17 @@
 package app;
 
-import LogicaTienda.Data.DataModel;
-import LogicaTienda.Data.DataSerializer;
 import LogicaTienda.Model.Productos;
+import LogicaTienda.Services.ProductoService;
+import LogicaTienda.Utils.MongoDBInitializer;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.stage.Stage;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -18,60 +19,54 @@ import java.util.logging.Logger;
 public class HelloApplication extends Application {
     private static final Logger LOGGER = Logger.getLogger(HelloApplication.class.getName());
 
-    private DataSerializer serializer;
-
     @Override
     public void start(Stage stage) {
-        serializer = new DataSerializer("productos.json");
-
-        // Cargar productos (ya no es necesario validar null si DataSerializer lo maneja)
-        List<Productos> productosCargados = serializer.deserializeData();
-        ObservableList<Productos> listaProductos = FXCollections.observableArrayList(productosCargados);
-
-        // Colocar los productos en el DataModel global
-        DataModel.getProductos().setAll(listaProductos);
-
-        // Inicializar DataModel para cargar facturas
-        DataModel dataModel = DataModel.getInstance();
-        dataModel.inicializar();
-        System.out.println("✅ Facturas cargadas al iniciar la aplicación: " + DataModel.getFacturas().size());
-
         try {
-            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/tiendaGUI/hello-view.fxml"));
-            Scene scene = new Scene(fxmlLoader.load(), 600, 600);
-            stage.setTitle("Ferreteria La Promo H&C");
-            stage.setScene(scene);
-            stage.show();
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error al cargar el FXML", e);
-            return;
-        }
+            // Inicializar MongoDB
+            MongoDBInitializer.initialize();
+            
+            // Cargar productos desde MongoDB
+            List<Productos> productosCargados = ProductoService.obtenerTodosLosProductos();
+            System.out.println("✅ Productos cargados al iniciar la aplicación: " + productosCargados.size());
 
-        // Guardar datos al cerrar la aplicación
-        stage.setOnCloseRequest(event -> {
-            ObservableList<Productos> productosGlobales = DataModel.getProductos();
-            if (!productosGlobales.isEmpty()) {
-                try {
-                    serializer.serializeData(productosGlobales);
-                    LOGGER.info("✅ Datos guardados correctamente en productos.json");
-                } catch (Exception e) {
-                    LOGGER.log(Level.SEVERE, "❌ Error al guardar los datos antes de cerrar.", e);
-                }
-            } else {
-                LOGGER.warning("⚠️ No hay productos que guardar.");
+            // Cargar la interfaz de usuario
+            try {
+                FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/org/tiendaGUI/hello-view.fxml"));
+                Scene scene = new Scene(fxmlLoader.load(), 1024, 768);
+                stage.setTitle("Ferretería La Promo H&C");
+                stage.setScene(scene);
+                stage.setMaximized(true);
+                stage.show();
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Error al cargar la interfaz de usuario", e);
+                showErrorDialog("Error de interfaz", "No se pudo cargar la interfaz de usuario: " + e.getMessage());
+                System.exit(1);
             }
-        });
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "❌ Error al iniciar la aplicación", e);
+            showErrorDialog("Error al iniciar la aplicación", e.getMessage());
+        }
     }
 
     @Override
     public void stop() {
         try {
-            DataModel.guardarFacturas();
-            LOGGER.info("✅ Facturas guardadas correctamente al cerrar la aplicación.");
+            // Cerrar la conexión con MongoDB
+            MongoDBInitializer.shutdown();
+            LOGGER.info("✅ Conexión con MongoDB cerrada correctamente");
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "❌ Error al guardar facturas al cerrar.", e);
+            LOGGER.log(Level.SEVERE, "❌ Error al cerrar la conexión con MongoDB", e);
         }
-        System.out.println("Aplicación cerrada - datos guardados");
+        System.out.println("Aplicación cerrada");
+    }
+
+    private void showErrorDialog(String title, String message) {
+        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+        alert.setTitle("Error");
+        alert.setHeaderText(title);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
     public static void main(String[] args) {

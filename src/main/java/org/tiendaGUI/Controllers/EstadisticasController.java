@@ -1,8 +1,10 @@
 package org.tiendaGUI.Controllers;
 
-import LogicaTienda.Data.DataModel;
 import LogicaTienda.Logic.LogicaEstadistica;
+import LogicaTienda.Model.Factura;
 import LogicaTienda.Model.Productos;
+import LogicaTienda.Services.FacturaService;
+import LogicaTienda.Services.ProductoService;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -15,7 +17,6 @@ import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.PieChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
 import java.io.IOException;
@@ -57,14 +58,18 @@ public class EstadisticasController {
     }
 
     private void cargarEstadisticas() {
-        List<Productos> productos = DataModel.getInstance().getListaProductos();
+        // Obtener productos desde MongoDB
+        List<Productos> productos = ProductoService.obtenerTodosLosProductos();
         LogicaEstadistica estadistica = new LogicaEstadistica(productos);
 
+        // Obtener facturas desde MongoDB
+        List<Factura> facturas = FacturaService.obtenerTodasLasFacturas();
+        
         // Debug: Verificar si hay facturas cargadas
-        System.out.println("DEBUG: Número de facturas cargadas: " + DataModel.getFacturas().size());
-        if (!DataModel.getFacturas().isEmpty()) {
-            System.out.println("DEBUG: Primera factura: " + DataModel.getFacturas().get(0));
-            System.out.println("DEBUG: Total de la primera factura: " + DataModel.getFacturas().get(0).getTotal());
+        System.out.println("DEBUG: Número de facturas cargadas: " + facturas.size());
+        if (!facturas.isEmpty()) {
+            System.out.println("DEBUG: Primera factura: " + facturas.get(0));
+            System.out.println("DEBUG: Total de la primera factura: " + facturas.get(0).getTotal());
         }
 
         // Cargar datos para el gráfico de barras (ventas por día)

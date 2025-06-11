@@ -1,7 +1,8 @@
 package org.tiendaGUI.Controllers;
 
-import LogicaTienda.Data.DataModel;
-import LogicaTienda.Data.DataSerializer;
+import LogicaTienda.Model.Domicilio;
+import LogicaTienda.Services.DomicilioService;
+import LogicaTienda.Services.FacturaService;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -15,6 +16,7 @@ import lombok.Setter;
 import org.tiendaGUI.Controllers.loader.ViewLoader;
 import org.tiendaGUI.DTO.DomicilioDTO;
 
+import java.io.IOException;
 import java.net.URL;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -35,22 +37,15 @@ public class DomicilioController implements Initializable {
     @FXML private Button btnEnviar;
     @FXML private Button btnVolver;
     private DomicilioDTO domicilioDTO;
-    private final DataSerializer domicilioSerializer = new DataSerializer("domicilios.json");
-    private final DataModel dataModel = new DataModel();
-
     @Setter
     private List<String> idFacturasValidas = new ArrayList<>();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Initialize the data model
-        dataModel.cargarFacturas();
-        dataModel.cargarDomicilios();
-
-        // ✅ Normaliza los IDs válidos al minúscula y sin espacios
-        dataModel.getFacturas().forEach(facturaDTO -> {
-            if (facturaDTO.getId() != null) {
-                idFacturasValidas.add(facturaDTO.getId().trim().toLowerCase());
+        // Cargar IDs de facturas válidas desde MongoDB
+        FacturaService.obtenerTodasLasFacturas().forEach(factura -> {
+            if (factura.getId() != null) {
+                idFacturasValidas.add(factura.getId().trim().toLowerCase());
             }
         });
 
@@ -60,8 +55,6 @@ public class DomicilioController implements Initializable {
         if (dpFechaEntrega != null) {
             dpFechaEntrega.setValue(LocalDate.now().plusDays(1));
         }
-
-        cargarDomicilios();
     }
 
     public void setDomicilioDTO(DomicilioDTO dto) {
@@ -88,13 +81,22 @@ public class DomicilioController implements Initializable {
                 dpFechaEntrega.getValue().toString(),
                 txtIdFactura.getText()
         );
+        
+        // Guardar el domicilio en MongoDB
+        guardarDomicilio(dto);
         irAVistaConfirmacion(event, dto);
     }
 
     private void irAVistaConfirmacion(ActionEvent event, DomicilioDTO dto) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/tiendaGUI/domicilio-confirmacion-view.fxml"));
+            URL fxmlUrl = getClass().getResource("/org/tiendaGUI/domicilio-confirmacion-view.fxml");
+            if (fxmlUrl == null) {
+                throw new IOException("No se pudo encontrar el archivo FXML");
+            }
+            
+            FXMLLoader loader = new FXMLLoader(fxmlUrl);
             Parent root = loader.load();
+            
             ConfirmacionDomicilioController controller = loader.getController();
             controller.setDomicilioDTO(dto);
 
@@ -104,7 +106,7 @@ public class DomicilioController implements Initializable {
             stage.show();
         } catch (Exception e) {
             e.printStackTrace();
-            mostrarAlerta("No se pudo cargar la vista de confirmación.");
+            mostrarAlerta("No se pudo cargar la vista de confirmación: " + e.getMessage());
         }
     }
 
@@ -140,12 +142,27 @@ public class DomicilioController implements Initializable {
         return true;
     }
 
-    private void cargarDomicilios() {
+    private void guardarDomicilio(DomicilioDTO dto) {
         try {
-            dataModel.getDomicilios().clear();
-            dataModel.getDomicilios().addAll(domicilioSerializer.deserializeDomicilios());
+            // Convertir DTO a entidad de dominio
+            // Usamos el ID de factura como clienteIdentificacion temporal
+            Domicilio domicilio = new Domicilio(
+                dto.getDireccion(),
+                dto.getReferenciaDireccion(),
+                dto.getNumeroPostal(),
+                dto.getNumeroApartamento(),
+                dto.getNumeroCelular(),
+                LocalDate.parse(dto.getFechaEntrega()),
+                dto.getIdFactura(),
+                dto.getIdFactura() // Usamos el ID de factura como clienteIdentificacion
+            );
+            
+            // Guardar en MongoDB
+            DomicilioService.guardarDomicilio(domicilio);
+            
         } catch (Exception e) {
             e.printStackTrace();
+            mostrarAlerta("Error al guardar el domicilio: " + e.getMessage());
         }
     }
 

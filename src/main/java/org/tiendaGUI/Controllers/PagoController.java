@@ -1,7 +1,22 @@
 package org.tiendaGUI.Controllers;
 
-import LogicaTienda.Data.DataModel;
 import LogicaTienda.Model.Factura;
+import LogicaTienda.Model.Productos;
+import LogicaTienda.Services.FacturaService;
+import javafx.util.Pair;
+import javafx.scene.layout.GridPane;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.Node;
+import javafx.beans.value.ChangeListener;
+import javafx.geometry.Insets;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import java.awt.Desktop;
+import LogicaTienda.Services.ProductoService;
+
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -13,6 +28,7 @@ import LogicaTienda.Model.Pago;
 import javafx.animation.FadeTransition;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -32,12 +48,15 @@ import java.io.IOException;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ResourceBundle;
-import java.util.UUID;
+import java.util.*;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static org.tiendaGUI.Controllers.loader.ViewLoader.mostrarAlerta;
 
 public class PagoController implements Initializable {
+    private static final Logger LOGGER = Logger.getLogger(PagoController.class.getName());
     private final PDFGenerator pdfGenerator = new PDFGenerator();
     @FXML private Label lblTotalCarrito;
     @FXML private Label lblCambio;
@@ -82,8 +101,9 @@ public class PagoController implements Initializable {
             Pago pago = event.getRowValue();
             pago.setId(event.getNewValue());
         });
-        // Cargar pagos actuales
-        tablaPagos.setItems(DataModel.getPagos());
+        // Cargar pagos actuales - Usando lista local en lugar de DataModel
+        ObservableList<Pago> pagos = FXCollections.observableArrayList();
+        tablaPagos.setItems(pagos);
         tablaPagos.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
         // Configurar combo de métodos
         metodoPagoCombo.setItems(FXCollections.observableArrayList(
@@ -113,21 +133,45 @@ public class PagoController implements Initializable {
 
     @FXML
     private void btnProcesarAction() {
-        // Validaciones básicas
-        String text = montoField.getText();
-        if (text.isEmpty()) { showError("Debe ingresar un monto"); return; }
-        double ingresado = Double.parseDouble(text);
-        if (ingresado < montoTotalCarrito) { showError("Monto insuficiente"); return; }
-        String metodo = metodoPagoCombo.getValue();
-        if (!"Efectivo".equals(metodo) && referenciaField.getText().trim().isEmpty()) {
-            showError("Referencia requerida para " + metodo); return;
-        }
-        double cambio = ingresado - montoTotalCarrito;
+        try {
+            // Validaciones básicas
+            String text = montoField.getText();
+            if (text.isEmpty()) { 
+                showError("Debe ingresar un monto"); 
+                return; 
+            }
+            
+            double ingresado = Double.parseDouble(text);
+            if (ingresado < montoTotalCarrito) { 
+                showError("Monto insuficiente"); 
+                return; 
+            }
+            
+            String metodo = metodoPagoCombo.getValue();
+            if (!"Efectivo".equals(metodo) && referenciaField.getText().trim().isEmpty()) {
+                showError("Referencia requerida para " + metodo); 
+                return;
+            }
+            
+            double cambio = ingresado - montoTotalCarrito;
 
-        Pago pago = registrarPago(ingresado, cambio);
-        crearFacturaConDialogo(pago);
-        showInfo(String.format("Pago correcto: pagó $%.2f, cambio $%.2f", ingresado, cambio));
-        limpiarCampos();
+            // Registrar el pago y actualizar el inventario
+            Pago pago = registrarPago(ingresado, cambio);
+
+            // Crear factura con diálogo
+            crearFacturaConDialogo(pago);
+            
+            // Mostrar mensaje de éxito
+            showInfo(String.format("Pago correcto: pagó $%.2f, cambio $%.2f", ingresado, cambio));
+            limpiarCampos();
+            
+        } catch (NumberFormatException e) {
+            showError("Por favor ingrese un monto válido");
+            LOGGER.log(Level.WARNING, "Formato de monto inválido", e);
+        } catch (Exception e) {
+            showError("Error al procesar el pago: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Error en btnProcesarAction", e);
+        }
     }
 
     @FXML
@@ -151,53 +195,211 @@ public class PagoController implements Initializable {
     }
 
     private Pago registrarPago(double montoPagado, double cambio) {
-        String idPago = UUID.randomUUID().toString().substring(0,8);
-        String fecha = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String metodo = metodoPagoCombo.getValue();
-        String ref = "Efectivo".equals(metodo)
-                ? String.format("Pagado $%.2f, cambio $%.2f", montoPagado, cambio)
-                : referenciaField.getText().trim();
-        Pago p = new Pago(idPago, montoTotalCarrito, metodo, fecha, "Completado", ref);
-        DataModel.getPagos().add(p);
-        tablaPagos.refresh();
-        return p;
+        try {
+            String idPago = UUID.randomUUID().toString().substring(0,8);
+            String fecha = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            String metodo = metodoPagoCombo.getValue();
+            String ref = "Efectivo".equals(metodo)
+                    ? String.format("Pagado $%.2f, cambio $%.2f", montoPagado, cambio)
+                    : referenciaField.getText().trim();
+            
+            // Crear el pago
+            Pago pago = new Pago(idPago, montoTotalCarrito, metodo, fecha, "Completado", ref);
+            
+            // Actualizar el inventario para cada producto en el carrito
+            for (Productos producto : carritoDTO.getProductos()) {
+                try {
+                    ProductoService.actualizarStock(
+                        producto.getIdProducto(),
+                        producto.getCantidad(),
+                        false // false para restar del stock
+                    );
+                } catch (Exception e) {
+                    LOGGER.log(Level.SEVERE, "Error al actualizar el stock del producto: " + producto.getIdProducto(), e);
+                    throw new RuntimeException("Error al actualizar el inventario: " + e.getMessage(), e);
+                }
+            }
+            
+            // Actualizar la tabla de pagos
+            if (tablaPagos.getItems() != null) {
+                tablaPagos.getItems().add(pago);
+                tablaPagos.refresh();
+            }
+            
+            return pago;
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al registrar el pago", e);
+            throw new RuntimeException("Error al registrar el pago: " + e.getMessage(), e);
+        }
     }
     public void crearFacturaConDialogo(Pago pago) {
-        // Mostrar el diálogo para ingresar los datos del cliente (nombre y cédula)
-        JTextField nombreField = new JTextField();
-        JTextField cedulaField = new JTextField();
+        try {
+            // Crear diálogo para ingresar los datos del cliente
+            Dialog<Pair<String, String>> dialog = new Dialog<>();
+            dialog.setTitle("Datos del Cliente");
+            dialog.setHeaderText("Ingrese los datos del cliente para la factura");
 
-        Object[] message = {
-                "Nombre del Cliente:", nombreField,
-                "Cédula del Cliente:", cedulaField
-        };
+            // Configurar los botones
+            ButtonType btnGenerarFactura = new ButtonType("Generar Factura", ButtonBar.ButtonData.OK_DONE);
+            dialog.getDialogPane().getButtonTypes().addAll(btnGenerarFactura, ButtonType.CANCEL);
 
-        int option = JOptionPane.showConfirmDialog(null, message, "Datos del Cliente", JOptionPane.OK_CANCEL_OPTION);
+            // Crear los campos del formulario
+            GridPane grid = new GridPane();
+            grid.setHgap(10);
+            grid.setVgap(10);
+            grid.setPadding(new Insets(20, 150, 10, 10));
 
-        if (option == JOptionPane.OK_OPTION) {
-            // Obtener los valores de los campos de texto
-            String nombreCliente = nombreField.getText().trim();
-            String cedulaCliente = cedulaField.getText().trim();
+            TextField nombreField = new TextField();
+            nombreField.setPromptText("Nombre completo");
+            TextField cedulaField = new TextField();
+            cedulaField.setPromptText("Número de identificación");
+            TextField emailField = new TextField();
+            emailField.setPromptText("Correo electrónico (opcional)");
+            TextField telefonoField = new TextField();
+            telefonoField.setPromptText("Teléfono (opcional)");
 
-            // Validación simple (puedes personalizarla)
-            if (nombreCliente.isEmpty() || cedulaCliente.isEmpty()) {
-                JOptionPane.showMessageDialog(null, "Por favor ingrese todos los campos.");
-                return;
+            // Añadir campos al grid
+            grid.add(new Label("Nombre completo:"), 0, 0);
+            grid.add(nombreField, 1, 0);
+            grid.add(new Label("Identificación:"), 0, 1);
+            grid.add(cedulaField, 1, 1);
+            grid.add(new Label("Email:"), 0, 2);
+            grid.add(emailField, 1, 2);
+            grid.add(new Label("Teléfono:"), 0, 3);
+            grid.add(telefonoField, 1, 3);
+
+            // Validar campos requeridos
+            Node btnGenerar = dialog.getDialogPane().lookupButton(btnGenerarFactura);
+            btnGenerar.setDisable(true);
+
+            // Validación en tiempo real
+            ChangeListener<String> validacionListener = (observable, oldValue, newValue) -> {
+                boolean camposValidos = !nombreField.getText().trim().isEmpty() &&
+                        !cedulaField.getText().trim().isEmpty();
+                btnGenerar.setDisable(!camposValidos);
+            };
+
+            nombreField.textProperty().addListener(validacionListener);
+            cedulaField.textProperty().addListener(validacionListener);
+
+            dialog.getDialogPane().setContent(grid);
+
+            // Convertir el resultado a un par de valores (nombre, cédula)
+            dialog.setResultConverter(dialogButton -> {
+                if (dialogButton == btnGenerarFactura) {
+                    return new Pair<>(
+                        nombreField.getText().trim(),
+                        cedulaField.getText().trim()
+                    );
+                }
+                return null;
+            });
+
+            // Mostrar diálogo y procesar resultado
+            Optional<Pair<String, String>> resultado = dialog.showAndWait();
+            
+            if (resultado.isPresent()) {
+                Pair<String, String> clienteData = resultado.get();
+                String nombreCliente = clienteData.getKey();
+                String cedulaCliente = clienteData.getValue();
+                String emailCliente = emailField.getText().trim();
+                String telefonoCliente = telefonoField.getText().trim();
+
+                // Validar formato de cédula
+                if (!cedulaCliente.matches("\\d+")) {
+                    showError("La cédula debe contener solo números");
+                    return;
+                }
+
+
+                // Crear la factura en MongoDB
+                List<Productos> productosFactura = new ArrayList<>(carritoDTO.getProductos());
+                
+                // Crear la factura
+                Factura factura = new Factura();
+                factura.setId(UUID.randomUUID().toString().substring(0, 8));
+                factura.setClienteNombre(nombreCliente);
+                factura.setClienteIdentificacion(cedulaCliente);
+                factura.setClienteEmail(emailCliente);
+                factura.setClienteTelefono(telefonoCliente);
+                factura.setProductos(productosFactura);
+                factura.setFecha(LocalDateTime.now());
+                factura.setTotal(montoTotalCarrito);
+                factura.setMetodoPago(pago.getMetodoPago());
+                factura.setReferenciaPago(pago.getReferencia());
+                
+                try {
+                    // Guardar la factura en la base de datos
+                    String facturaId = FacturaService.crearFactura(
+                        productosFactura,
+                        nombreCliente,
+                        cedulaCliente,
+                        montoTotalCarrito,
+                        pago.getMetodoPago(),
+                        pago.getReferencia(),
+                        emailCliente,
+                        telefonoCliente
+                    );
+                    factura.setId(facturaId);
+                    
+                    try {
+                        // Generar PDF de la factura
+                        PDFGenerator.generarFacturaPDF(factura);
+                        
+                        // Mostrar mensaje de éxito con opción para abrir la factura
+                        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                        alert.setTitle("Factura Generada");
+                        alert.setHeaderText("¡Factura generada exitosamente!");
+                        alert.setContentText(String.format("Número de factura: %s\nCliente: %s\nTotal: $%,.2f", 
+                            facturaId, nombreCliente, montoTotalCarrito));
+                        
+                        // Agregar botón para abrir la factura
+                        ButtonType btnAbrirFactura = new ButtonType("Abrir Factura", ButtonBar.ButtonData.YES);
+                        ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
+                        alert.getButtonTypes().setAll(btnAbrirFactura, btnCerrar);
+                        
+                        // Mostrar diálogo y manejar la respuesta
+                        Optional<ButtonType> result = alert.showAndWait();
+                        if (result.isPresent() && result.get() == btnAbrirFactura) {
+                            // Intentar abrir el archivo PDF con el visor predeterminado
+                            String userHome = System.getProperty("user.home");
+                            File downloads = new File(userHome, "Downloads");
+                            if (!downloads.exists() || !downloads.isDirectory()) {
+                                downloads = new File(userHome, "Descargas");
+                            }
+                            File pdfFile = new File(downloads, "FACTURA_" + facturaId + ".pdf");
+                            
+                            if (pdfFile.exists()) {
+                                try {
+                                    Desktop.getDesktop().open(pdfFile);
+                                } catch (IOException ex) {
+                                    LOGGER.log(Level.WARNING, "No se pudo abrir el archivo PDF", ex);
+                                    showInfo("La factura se guardó en: " + pdfFile.getAbsolutePath());
+                                }
+                            }
+                        }
+                        
+                        // Limpiar el carrito después del pago exitoso
+                        carritoDTO.getProductos().clear();
+                        carritoDTO.actualizarTotal();
+                        
+                    } catch (IOException ioEx) {
+                        LOGGER.log(Level.SEVERE, "Error al generar el PDF de la factura", ioEx);
+                        showError(String.format(
+                            "La factura se creó correctamente (ID: %s) pero hubo un error al generar el PDF: %s",
+                            facturaId, ioEx.getMessage()
+                        ));
+                    }
+                    
+                } catch (Exception e) {
+                    LOGGER.log(Level.SEVERE, "Error al crear la factura", e);
+                    showError("Error al generar la factura: " + e.getMessage());
+                }
             }
-
-            // Validar formato de cédula (por ejemplo, que sea numérica y tenga una longitud adecuada)
-            if (!cedulaCliente.matches("\\d+")) {
-                JOptionPane.showMessageDialog(null, "La cédula debe ser numérica.");
-                return;
-            }
-
-            // Llamar a la función crearFactura con los datos del cliente
-            DataModel.crearFacturaDialogo(pago, nombreCliente, cedulaCliente);
-
-            // Mostrar mensaje de éxito
-            JOptionPane.showMessageDialog(null, "Factura creada exitosamente.");
-        } else {
-            JOptionPane.showMessageDialog(null, "Operación cancelada.");
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error inesperado en crearFacturaConDialogo", e);
+            showError("Error inesperado: " + e.getMessage());
         }
     }
     private void actualizarCambio(double ingresado) {
@@ -275,14 +477,27 @@ public class PagoController implements Initializable {
 
     private Factura obtenerFacturaDesdePagoSeleccionado() {
         Pago pago = tablaPagos.getSelectionModel().getSelectedItem();
-        if (pago == null) return null;
-
-        for (Factura f : DataModel.getFacturas()) {
-            if (f.getPago().getId().equals(pago.getId())) {
-                return f;
-            }
+        if (pago == null) {
+            LOGGER.warning("No se ha seleccionado ningún pago");
+            return null;
         }
-        return null;
+
+        try {
+            // Buscar factura por ID de pago
+            // Nota: Esto asume que el ID del pago es el mismo que el ID de factura
+            // Si hay una relación diferente, deberías ajustar este código
+            // para buscar por el campo correcto en la colección de facturas
+            Factura factura = FacturaService.buscarFacturaPorId(pago.getId());
+            
+            if (factura == null) {
+                LOGGER.warning("No se encontró factura para el pago con ID: " + pago.getId());
+            }
+            return factura;
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al buscar factura para el pago con ID: " + pago.getId(), e);
+            return null;
+        }
     }
 
 }

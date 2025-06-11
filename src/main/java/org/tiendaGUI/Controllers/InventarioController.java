@@ -1,10 +1,12 @@
 package org.tiendaGUI.Controllers;
 
-import LogicaTienda.Data.DataSerializer;
-import LogicaTienda.Data.DataModel;
-import LogicaTienda.Forms.SearchForm;
 import LogicaTienda.Model.Productos;
+import LogicaTienda.Services.ProductoService;
 import LogicaTienda.Forms.formularioProduct;
+import java.util.List;
+import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -22,7 +24,6 @@ import java.net.URL;
 import java.util.ResourceBundle;
 
 public class InventarioController implements Initializable {
-    private final DataSerializer dataSerializer = new DataSerializer("productos.json");
     @FXML private Button btnNuevo, btnVolver, btnEliminar, btnActualizar;
     @FXML private TableView<Productos> tablaNumero1;
     @FXML private TableColumn<Productos, String> columnaNombre;
@@ -38,8 +39,9 @@ public class InventarioController implements Initializable {
 
     @FXML
     private void presionarBotonNuevo(ActionEvent event) {
-        // Usa la lista global para el formulario
-        new formularioProduct("Nuevo Producto", DataModel.getProductos(), false, dataSerializer, null)
+        new formularioProduct("Nuevo Producto", 
+            FXCollections.observableArrayList(ProductoService.obtenerTodosLosProductos()), 
+            false, null, null)
                 .showAndWait();
         actualizarTabla();
     }
@@ -48,18 +50,28 @@ public class InventarioController implements Initializable {
     private void presionarBotonEliminar(ActionEvent event) {
         Productos productoSeleccionado = tablaNumero1.getSelectionModel().getSelectedItem();
         if (productoSeleccionado == null) {
-            mostrarAlerta("Error", "No se seleccionó ningún producto para eliminar.");
+            mostrarAlerta("Error", "No se seleccionó ningún producto para eliminar.", Alert.AlertType.ERROR);
             return;
         }
-        System.out.println("📂 Antes de eliminar: " + DataModel.getProductos());
-        DataModel.getProductos().remove(productoSeleccionado);
-        System.out.println("📂 Después de eliminar: " + DataModel.getProductos());
-
-        dataSerializer.serializeData(DataModel.getProductos());
-        System.out.println("✅ Datos guardados correctamente en productos.json");
-
-        actualizarTabla();
-        System.out.println("✅ Producto eliminado correctamente.");
+        
+        // Mostrar confirmación
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Confirmar eliminación");
+        alert.setHeaderText("¿Está seguro de eliminar el producto?");
+        alert.setContentText("Esta acción no se puede deshacer.");
+        
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            try {
+                // Eliminar de MongoDB
+                ProductoService.eliminarProducto(productoSeleccionado.getIdProducto());
+                actualizarTabla();
+                mostrarAlerta("Éxito", "Producto eliminado correctamente.", Alert.AlertType.INFORMATION);
+            } catch (Exception e) {
+                Logger.getLogger(InventarioController.class.getName()).log(Level.SEVERE, "Error al eliminar el producto", e);
+                mostrarAlerta("Error", "No se pudo eliminar el producto: " + e.getMessage(), Alert.AlertType.ERROR);
+            }
+        }
     }
 
     @FXML
@@ -70,17 +82,26 @@ public class InventarioController implements Initializable {
             return;
         }
         // Abre el formulario para actualizar el producto seleccionado
-        new formularioProduct("Actualizar Producto", DataModel.getProductos(), false, dataSerializer, productoSeleccionado)
+        new formularioProduct("Actualizar Producto", 
+            FXCollections.observableArrayList(ProductoService.obtenerTodosLosProductos()), 
+            false, null, productoSeleccionado)
                 .showAndWait();
         actualizarTabla();
     }
 
     /**
-     * Actualiza la tabla usando la lista global (sin recargar del JSON)
+     * Actualiza la tabla desde MongoDB
      */
     private void actualizarTabla() {
-        tablaNumero1.setItems(DataModel.getProductos());
-        tablaNumero1.refresh();
+        try {
+            List<Productos> productos = ProductoService.obtenerTodosLosProductos();
+            ObservableList<Productos> productosList = FXCollections.observableArrayList(productos);
+            tablaNumero1.setItems(productosList);
+            tablaNumero1.refresh();
+        } catch (Exception e) {
+            Logger.getLogger(InventarioController.class.getName()).log(Level.SEVERE, "Error al cargar los productos", e);
+            mostrarAlerta("Error", "No se pudieron cargar los productos: " + e.getMessage(), Alert.AlertType.ERROR);
+        }
     }
 
     @Override
@@ -91,9 +112,8 @@ public class InventarioController implements Initializable {
         columnaCantidad.setCellValueFactory(new PropertyValueFactory<>("cantidad"));
         columnaId.setCellValueFactory(new PropertyValueFactory<>("idProducto"));
 
-        // Asigna directamente la lista global ya cargada en HelloController
-        tablaNumero1.setItems(DataModel.getProductos());
-        tablaNumero1.refresh();
+        // Cargar productos iniciales
+        actualizarTabla();
     }
 
     protected void cambiarVentana(ActionEvent event, String fxmlFile, String title) {
@@ -123,27 +143,21 @@ public class InventarioController implements Initializable {
         alerta.showAndWait();
     }
 
-    // Este método es útil si en algún momento necesitas inyectar la lista global a este controlador.
+    // Este método se mantiene para compatibilidad pero ya no es necesario con MongoDB
     public void bindListaProductos(ObservableList<Productos> productos) {
         tablaNumero1.setItems(productos);
-        System.out.println("📦 Productos cargados en InventarioController: " + productos.size());
     }
 
 
     @FXML
     private void MetodoBusquedaTablaCarrito() {
-        SearchForm form = new SearchForm(DataModel.getProductos());
-        form.setOnBusquedaFinalizada(filtrados -> {
-            tablaNumero1.setItems(FXCollections.observableArrayList(filtrados));
-            tablaNumero1.refresh();
-        });
-        form.showAndWait();
+        // Implementar búsqueda si es necesario
+        mostrarAlerta("Búsqueda", "La funcionalidad de búsqueda está en desarrollo.", Alert.AlertType.INFORMATION);
     }
 
     @FXML
     private void RestablecerTablaAction() {
-        tablaNumero1.setItems(DataModel.getProductos());
-        tablaNumero1.refresh();
+        actualizarTabla();
     }
 
 }

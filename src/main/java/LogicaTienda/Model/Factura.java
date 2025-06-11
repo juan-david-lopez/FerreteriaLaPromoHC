@@ -3,6 +3,7 @@ package LogicaTienda.Model;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ import java.util.UUID;
 @Getter
 @Setter
 public class Factura implements Serializable {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private String id;
@@ -19,9 +21,14 @@ public class Factura implements Serializable {
     private Pago pago;
     private String clienteNombre;
     private String clienteIdentificacion;
+    private String clienteEmail;
+    private String clienteTelefono;
     private String tipoFactura;
     private String estado = "Activa"; // Estados posibles: Activa, Anulada, etc.
     private boolean eliminada = false; // Flag para borrado lógico
+    private double total;
+    private String metodoPago;
+    private String referenciaPago;
 
     public Factura() {
         this.id = UUID.randomUUID().toString().substring(0, 8);
@@ -60,7 +67,7 @@ public class Factura implements Serializable {
     }
     public double getTotal() {
         return productos.stream()
-                .mapToDouble(p -> p.getPrecio() * p.getCantidad())
+                .mapToDouble(p -> p.getPrecioParaVender() * p.getCantidad())
                 .sum();
     }
     @Override
