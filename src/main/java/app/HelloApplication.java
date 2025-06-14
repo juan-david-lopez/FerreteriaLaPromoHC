@@ -4,12 +4,8 @@ import LogicaTienda.Model.Productos;
 import LogicaTienda.Services.ProductoService;
 import LogicaTienda.Utils.MongoDBInitializer;
 import javafx.application.Application;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
 import javafx.stage.Stage;
 
 import java.util.List;

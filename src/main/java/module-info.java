@@ -1,49 +1,39 @@
-module org.tiendaGUI {
+module ferreteria.la.promo {
+    // Módulos requeridos
     requires javafx.controls;
     requires javafx.fxml;
     requires javafx.graphics;
     requires javafx.media;
     requires org.controlsfx.controls;
-    requires java.desktop;
     requires com.google.gson;
-    requires java.logging;
     requires static lombok;
-    requires org.mongodb.driver.core;
+    requires java.desktop;
+    requires java.logging;
     requires org.mongodb.driver.sync.client;
     requires org.mongodb.bson;
     requires kernel;
     requires layout;
     requires io;
-    
-    // Export the main package
-    exports org.tiendaGUI;
-    exports org.tiendaGUI.Controllers;
-    exports org.tiendaGUI.DTO;
-    exports org.tiendaGUI.utils;
+    requires org.mongodb.driver.core;
+
+    // Exportar paquetes
     exports app;
     
-    // Export LogicaTienda packages
-    exports LogicaTienda;
-    exports LogicaTienda.Model;
-    exports LogicaTienda.Data;
-    exports LogicaTienda.Forms;
-    exports LogicaTienda.Logic;
-    exports LogicaTienda.Enum;
-    exports LogicaTienda.Services;
-
-    // Open packages for reflection
-    opens org.tiendaGUI to javafx.fxml, javafx.graphics, com.google.gson;
-    opens org.tiendaGUI.Controllers to javafx.fxml, javafx.base, com.google.gson;
-    opens org.tiendaGUI.DTO to javafx.base, com.google.gson;
-    opens org.tiendaGUI.utils to javafx.fxml, com.google.gson;
-    opens app to javafx.graphics;
+    // Exportar paquetes para FXML y MongoDB
+    exports LogicaTienda.Model to javafx.fxml, com.google.gson, org.mongodb.bson, javafx.base;
+    exports LogicaTienda.Utils to javafx.fxml, com.google.gson;
     
-    // Open LogicaTienda packages for reflection
-    opens LogicaTienda to com.google.gson, org.mongodb.bson, javafx.fxml;
-    opens LogicaTienda.Model to com.google.gson, javafx.base, org.mongodb.bson, javafx.fxml;
-    opens LogicaTienda.Data to com.google.gson, javafx.base, javafx.fxml;
-    opens LogicaTienda.Forms to com.google.gson, javafx.base, javafx.fxml;
-    opens LogicaTienda.Logic to com.google.gson, javafx.base, org.mongodb.bson, javafx.fxml;
-    opens LogicaTienda.Enum to com.google.gson, javafx.base, javafx.fxml;
-    opens LogicaTienda.Services to com.google.gson, org.mongodb.bson, javafx.fxml;
+    // Abrir paquetes para reflexión
+    opens app to javafx.fxml, javafx.graphics, com.google.gson;
+    opens LogicaTienda to javafx.fxml, com.google.gson, org.mongodb.bson;
+    opens LogicaTienda.Model to javafx.fxml, com.google.gson, org.mongodb.bson, javafx.base;
+    opens LogicaTienda.Utils to javafx.fxml, com.google.gson;
+    
+    // Exportar paquetes de la interfaz gráfica
+    exports org.tiendaGUI.Controllers to javafx.fxml;
+    exports org.tiendaGUI.DTO to javafx.fxml, com.google.gson, org.mongodb.bson;
+    
+    // Abrir paquetes para reflexión
+    opens org.tiendaGUI.Controllers to javafx.fxml, com.google.gson, javafx.graphics;
+    opens org.tiendaGUI.DTO to javafx.fxml, com.google.gson, org.mongodb.bson, javafx.base;
 }

@@ -29,6 +29,7 @@ public class HelloController {
     @FXML private Pane imagenDelMedio, panelPrincipal;
     @FXML private ToolBar panelAbajo;
     @FXML private Label panelArriba;
+    @FXML private javafx.scene.image.ImageView logoImageView;
 
     /**
      * Inicializa el controlador principal del sistema.
@@ -38,6 +39,56 @@ public class HelloController {
     public void initialize() {
         LOGGER.info("📦 HelloController inicializado");
         cargarProductosDesdeMongoDB();
+        cargarImagen();
+    }
+    
+    private void cargarImagen() {
+        try {
+            // Cargar la imagen desde los recursos
+            String imagePath = "/images/LogoFerreteria.png";
+            LOGGER.info("🔍 Intentando cargar imagen desde ruta: " + imagePath);
+            
+            // Obtener la URL del recurso para propósitos de depuración
+            java.net.URL imageUrl = getClass().getResource(imagePath);
+            LOGGER.info("📄 URL de la imagen: " + (imageUrl != null ? imageUrl.toString() : "No encontrada"));
+            
+            // Intentar cargar la imagen
+            try (java.io.InputStream is = getClass().getResourceAsStream(imagePath)) {
+                if (is != null) {
+                    LOGGER.info("📦 Flujo de entrada de imagen obtenido correctamente");
+                    javafx.scene.image.Image image = new javafx.scene.image.Image(is);
+                    
+                    // Verificar si la imagen se cargó correctamente
+                    if (image.isError()) {
+                        LOGGER.severe("❌ Error al cargar la imagen: " + image.getException().getMessage());
+                    } else {
+                        LOGGER.info(String.format("✅ Imagen cargada correctamente. Dimensiones: %.2fx%.2f", 
+                            image.getWidth(), image.getHeight()));
+                        logoImageView.setImage(image);
+                    }
+                } else {
+                    LOGGER.severe("❌ No se pudo obtener el flujo de entrada para la imagen: " + imagePath);
+                    
+                    // Listar los recursos en el directorio /images para depuración
+                    try {
+                        java.net.URL imagesDir = getClass().getResource("/images");
+                        if (imagesDir != null) {
+                            java.nio.file.Path imagesPath = java.nio.file.Paths.get(imagesDir.toURI());
+                            LOGGER.info("📂 Contenido del directorio de imágenes:");
+                            java.nio.file.Files.list(imagesPath).forEach(file -> 
+                                LOGGER.info("   - " + file.getFileName())
+                            );
+                        } else {
+                            LOGGER.warning("⚠️ No se pudo encontrar el directorio /images en el classpath");
+                        }
+                    } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, "⚠️ No se pudo listar el directorio de imágenes", e);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "❌ Error inesperado al cargar la imagen", e);
+        }
     }
 
     private void cargarProductosDesdeMongoDB() {
