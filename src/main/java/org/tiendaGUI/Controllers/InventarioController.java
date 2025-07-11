@@ -17,6 +17,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -25,6 +26,7 @@ import java.util.ResourceBundle;
 
 public class InventarioController implements Initializable {
     @FXML private Button btnNuevo, btnVolver, btnEliminar, btnActualizar;
+    @FXML private TextField txtBusqueda;
     @FXML private TableView<Productos> tablaNumero1;
     @FXML private TableColumn<Productos, String> columnaNombre;
     @FXML private TableColumn<Productos, Double> columnaPrecio;
@@ -150,14 +152,63 @@ public class InventarioController implements Initializable {
 
 
     @FXML
+    private void buscarProducto(KeyEvent event) {
+        // Este método se llama cuando se suelta una tecla en el campo de búsqueda
+        if (event != null) {
+            ejecutarBusqueda();
+        }
+    }
+    
+    private void ejecutarBusqueda() {
+        String textoBusqueda = txtBusqueda.getText().trim().toLowerCase();
+        if (textoBusqueda.isEmpty()) {
+            actualizarTabla();
+            return;
+        }
+
+        try {
+            List<Productos> todosProductos = ProductoService.obtenerTodosLosProductos();
+            ObservableList<Productos> productosFiltrados = FXCollections.observableArrayList();
+            
+            for (Productos producto : todosProductos) {
+                if ((producto.getNombre() != null && producto.getNombre().toLowerCase().contains(textoBusqueda)) ||
+                    (producto.getIdProducto() != null && producto.getIdProducto().toLowerCase().contains(textoBusqueda))) {
+                    productosFiltrados.add(producto);
+                }
+            }
+            
+            tablaNumero1.setItems(productosFiltrados);
+            tablaNumero1.refresh();
+            
+        } catch (Exception e) {
+            Logger.getLogger(InventarioController.class.getName()).log(Level.SEVERE, "Error al buscar productos", e);
+            mostrarAlerta("Error", "No se pudieron buscar los productos: " + e.getMessage(), Alert.AlertType.ERROR);
+        }
+    }
+    
+    @FXML
+    @Deprecated
     private void MetodoBusquedaTablaCarrito() {
-        // Implementar búsqueda si es necesario
-        mostrarAlerta("Búsqueda", "La funcionalidad de búsqueda está en desarrollo.", Alert.AlertType.INFORMATION);
+        // Método obsoleto, mantenido para compatibilidad
+        ejecutarBusqueda();
     }
 
     @FXML
-    private void RestablecerTablaAction() {
+    private void restablecerTabla() {
+        if (txtBusqueda != null) {
+            txtBusqueda.clear();
+        }
         actualizarTabla();
+    }
+    
+    private boolean confirmarAccion(String titulo, String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(titulo);
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        
+        Optional<ButtonType> resultado = alert.showAndWait();
+        return resultado.isPresent() && resultado.get() == ButtonType.OK;
     }
 
 }

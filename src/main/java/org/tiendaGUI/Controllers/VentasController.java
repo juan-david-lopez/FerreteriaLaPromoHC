@@ -1,6 +1,5 @@
 package org.tiendaGUI.Controllers;
 
-// DataModel dependency removed - using MongoDB directly
 import LogicaTienda.Model.Productos;
 import LogicaTienda.Services.ProductoService;
 import javafx.application.Platform;
@@ -15,19 +14,20 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.KeyEvent;
 import javafx.stage.Stage;
+import org.tiendaGUI.Controllers.loader.ViewLoader;
 import org.tiendaGUI.DTO.CarritoDTO;
 import org.tiendaGUI.DTO.ProductoSimpleDTO;
-import org.tiendaGUI.Controllers.loader.ViewLoader;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 public class VentasController implements Initializable {
     private static final Logger LOGGER = Logger.getLogger(VentasController.class.getName());
@@ -43,7 +43,8 @@ public class VentasController implements Initializable {
     @FXML private TableColumn<ProductoSimpleDTO, Integer> columnaCantidad;
     @FXML private TableColumn<ProductoSimpleDTO, Integer> columnaStock;
     @FXML private TableColumn<ProductoSimpleDTO, String> columnaId;
-    
+    @FXML private TextField txtBusqueda;
+
     private ObservableList<ProductoSimpleDTO> productosDTO;
 
     private CarritoDTO carritoDTO;
@@ -58,7 +59,7 @@ public class VentasController implements Initializable {
     
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        System.out.println("📦 Inicializando controlador de ventas con MongoDB");
+        System.out.println(" Inicializando controlador de ventas con MongoDB");
         
         // Configurar columnas de la tabla
         columnaId.setCellValueFactory(new PropertyValueFactory<>("idProducto"));
@@ -73,6 +74,8 @@ public class VentasController implements Initializable {
         
         // Cargar productos desde MongoDB
         cargarProductosDesdeMongoDB();
+        
+        txtBusqueda.setOnKeyPressed(this::buscarProducto);
     }
 
     private void cargarProductos() {
@@ -80,27 +83,33 @@ public class VentasController implements Initializable {
             try {
                 List<Productos> productos = ProductoService.obtenerTodosLosProductos();
                 Platform.runLater(() -> {
-                    if (productos != null && !productos.isEmpty()) {
-                        // Convertir a DTOs y actualizar la tabla
-                        productosDTO.setAll(productos.stream()
-                            .map(p -> new ProductoSimpleDTO(
-                                p.getIdProducto(), 
-                                p.getNombre(), 
-                                p.getPrecioParaVender(), 
-                                p.getCantidad(), 
-                                p.getStock()
-                            ))
-                            .collect(Collectors.toList())
-                        );
-                        
-                        tablaProductos.refresh();
-                        System.out.println("✅ " + productos.size() + " productos cargados");
-                    } else {
-                        System.out.println("ℹ️ No se encontraron productos");
+                    try {
+                        if (productos != null && !productos.isEmpty()) {
+                            // Convertir a DTOs y actualizar la tabla
+                            List<ProductoSimpleDTO> listaProductos = new ArrayList<>();
+                            for (Productos p : productos) {
+                                ProductoSimpleDTO dto = new ProductoSimpleDTO(
+                                    p.getIdProducto(),
+                                    p.getNombre(),
+                                    p.getPrecioParaVender(),
+                                    0, // Cantidad inicial
+                                    p.getCantidad()
+                                );
+                                listaProductos.add(dto);
+                            }
+                            
+                            productosDTO.setAll(listaProductos);
+                            tablaProductos.refresh();
+                            System.out.println(productos.size() + " productos cargados");
+                        } else {
+                            System.out.println("No se encontraron productos");
+                        }
+                    } catch (Exception e) {
+                        mostrarAlerta("Error", "Error al procesar los productos: " + e.getMessage(), 
+                                    Alert.AlertType.ERROR);
                     }
                 });
             } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Error al cargar productos", e);
                 Platform.runLater(() -> 
                     mostrarAlerta("Error", "No se pudieron cargar los productos: " + e.getMessage(), 
                                 Alert.AlertType.ERROR)
@@ -112,16 +121,88 @@ public class VentasController implements Initializable {
     private void cargarProductosDesdeMongoDB() {
         cargarProductos();
     }
+    
+    private void mostrarAlerta(String titulo, String mensaje, Alert.AlertType tipo) {
+        Platform.runLater(() -> {
+            Alert alerta = new Alert(tipo);
+            alerta.setTitle(titulo);
+            alerta.setHeaderText(null);
+            alerta.setContentText(mensaje);
+            alerta.showAndWait();
+        });
+    }
+    
+
 
     @FXML
     private void btnVolverAction(ActionEvent event) {
-        System.out.println("🔙 Volviendo al menú principal...");
-        cambiarVentana(event, "hello-view.fxml", "Menú Principal");
+        System.out.println(" Volviendo al men principal...");
+        cambiarVentana(event, "hello-view.fxml", "Men Principal");
     }
 
     @FXML
     private void btnActualizarAction(ActionEvent event) {
-        cargarProductosDesdeMongoDB();
+        cargarProductos();
+    }
+    
+    @FXML
+    private void buscarProducto(KeyEvent event) {
+        if (event != null) {
+            ejecutarBusqueda();
+        }
+    }
+    
+    @FXML
+    private void restablecerBusqueda() {
+        if (txtBusqueda != null) {
+            txtBusqueda.clear();
+        }
+        cargarProductos();
+    }
+    
+    private void ejecutarBusqueda() {
+        String textoBusqueda = txtBusqueda.getText().trim().toLowerCase();
+        if (textoBusqueda.isEmpty()) {
+            cargarProductos();
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                List<Productos> todosProductos = ProductoService.obtenerTodosLosProductos();
+                List<ProductoSimpleDTO> productosFiltrados = new ArrayList<>();
+                
+                for (Productos producto : todosProductos) {
+                    if ((producto.getNombre() != null && producto.getNombre().toLowerCase().contains(textoBusqueda)) ||
+                        (producto.getIdProducto() != null && producto.getIdProducto().toLowerCase().contains(textoBusqueda))) {
+                        ProductoSimpleDTO dto = new ProductoSimpleDTO(
+                            producto.getIdProducto(),
+                            producto.getNombre(),
+                            producto.getPrecioParaVender(),
+                            0, // Cantidad inicial
+                            producto.getCantidad()
+                        );
+                        productosFiltrados.add(dto);
+                    }
+                }
+                
+                Platform.runLater(() -> {
+                    try {
+                        productosDTO.setAll(productosFiltrados);
+                        tablaProductos.refresh();
+                    } catch (Exception e) {
+                        mostrarAlerta("Error", "Error al actualizar la tabla: " + e.getMessage(), 
+                                    Alert.AlertType.ERROR);
+                    }
+                });
+                
+            } catch (Exception e) {
+                Platform.runLater(() -> 
+                    mostrarAlerta("Error", "No se pudieron buscar los productos: " + e.getMessage(), 
+                                Alert.AlertType.ERROR)
+                );
+            }
+        }).start();
     }
 
     @FXML
@@ -218,40 +299,78 @@ public class VentasController implements Initializable {
     @FXML
     private void btnIrCarritoAction(ActionEvent event) {
         if (carritoDTO == null || carritoDTO.getProductos().isEmpty()) {
-            mostrarAlerta("Carrito vacío", "No hay productos en el carrito.", Alert.AlertType.INFORMATION);
+            mostrarAlerta("Carrito Vacío", "No hay productos en el carrito.", Alert.AlertType.INFORMATION);
             return;
         }
         
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/tiendaGUI/pedido-view.fxml"));
-            Parent root = loader.load();
-            PedidoController pedidoCtrl = loader.getController();
-            // Calcular el total actualizado
-            carritoDTO.actualizarTotal();
-            pedidoCtrl.setCarritoDTO(carritoDTO);
-            
-            Stage stage = (Stage)((Node)event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.setTitle("Carrito de Compras");
-            stage.show();
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error al abrir el carrito", e);
-            mostrarAlerta("Error", "No se pudo abrir el carrito: " + e.getMessage(), 
-                        Alert.AlertType.ERROR);
+        // Mostrar resumen antes de ir al carrito
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Resumen del Carrito");
+        alert.setHeaderText("Resumen de productos en el carrito");
+        
+        StringBuilder contenido = new StringBuilder("Productos en el carrito:\n\n");
+        double total = 0;
+        
+        for (Productos p : carritoDTO.getProductos()) {
+            double subtotal = p.getPrecioParaVender() * p.getCantidad();
+            contenido.append(String.format("%s x%d - $%,.2f\n", 
+                p.getNombre(), p.getCantidad(), subtotal));
+            total += subtotal;
+        }
+        
+        contenido.append(String.format("\nTotal: $%,.2f\n\n¿Desea proceder al pago?", total));
+        alert.setContentText(contenido.toString());
+        
+        alert.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO, ButtonType.CANCEL);
+        Optional<ButtonType> resultado = alert.showAndWait();
+        
+        if (resultado.isPresent()) {
+            if (resultado.get() == ButtonType.YES) {
+                try {
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/tiendaGUI/pedido-view.fxml"));
+                    Parent root = loader.load();
+                    
+                    // Pasar el carrito al controlador de pedido
+                    PedidoController pedidoController = loader.getController();
+                    pedidoController.setCarritoDTO(carritoDTO);
+                    
+                    Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+                    stage.setScene(new Scene(root));
+                    stage.show();
+                    
+                } catch (IOException e) {
+                    LOGGER.log(Level.SEVERE, "Error al cargar la vista de pedido", e);
+                    mostrarAlerta("Error", "No se pudo cargar la vista de pedido: " + e.getMessage(), 
+                                 Alert.AlertType.ERROR);
+                }
+            } else if (resultado.get() == ButtonType.NO || resultado.get() == ButtonType.CANCEL) {
+                // Devolver productos al inventario
+                for (Productos producto : carritoDTO.getProductos()) {
+                    try {
+                        // Obtener el producto actual de la base de datos
+                        Productos productoBD = ProductoService.buscarProductoPorId(producto.getIdProducto());
+                        if (productoBD != null) {
+                            // Restaurar la cantidad al inventario
+                            productoBD.setCantidad(productoBD.getCantidad() + producto.getCantidad());
+                            // Actualizar en la base de datos
+                            ProductoService.actualizarProducto(productoBD);
+                        }
+                    } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "Error al devolver el producto al inventario: " + producto.getIdProducto(), e);
+                    }
+                }
+                // Limpiar carrito
+                carritoDTO.getProductos().clear();
+                carritoDTO.actualizarTotal();
+                // Actualizar la vista
+                cargarProductos();
+                mostrarAlerta("Operación cancelada", "Los productos han sido devueltos al inventario.", Alert.AlertType.INFORMATION);
+            }
+            // Si es CANCEL, no hacer nada
         }
     }
 
     private void cambiarVentana(ActionEvent event, String fxmlFile, String title) {
         ViewLoader.cargarVista(event, fxmlFile, title);
-    }
-
-    private void mostrarAlerta(String titulo, String mensaje, Alert.AlertType tipo) {
-        Platform.runLater(() -> {
-            Alert alerta = new Alert(tipo);
-            alerta.setTitle(titulo);
-            alerta.setHeaderText(null);
-            alerta.setContentText(mensaje);
-            alerta.showAndWait();
-        });
     }
 }

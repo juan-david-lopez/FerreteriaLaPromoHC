@@ -123,7 +123,7 @@ public class HelloController {
 
     @FXML
     private void presionarBotonEstadisticas(ActionEvent event) {
-        cambiarVentana(event, "estadisticas-view.fxml", "Estadísticas");
+        cambiarVentana(event, "estadisticas-simple-view.fxml", "Estadísticas");
     }
 
     @FXML
@@ -141,17 +141,24 @@ public class HelloController {
      */
     private void cambiarVentana(ActionEvent event, String fxmlFile, String titulo) {
         try {
-            URL url = getClass().getResource("/org/tiendaGUI/" + fxmlFile);
+            // Normalizar el path del archivo
+            String normalizedPath = fxmlFile.startsWith("/") ? fxmlFile : "/" + fxmlFile;
+            URL url = getClass().getResource(normalizedPath);
+            
             if (url == null) {
-                throw new IOException("No se pudo encontrar el archivo: " + fxmlFile);
+                // Intentar con la ruta completa si no se encuentra
+                String fullPath = "/org/tiendaGUI/" + fxmlFile.replaceAll("^/+", "");
+                url = getClass().getResource(fullPath);
+                
+                if (url == null) {
+                    throw new IOException("No se pudo encontrar el archivo en ninguna de las ubicaciones: " + 
+                                       normalizedPath + " o " + fullPath);
+                }
             }
             
-            LOGGER.info("🔄 Cargando vista: " + fxmlFile);
+            LOGGER.info("🔄 Cargando vista desde: " + url);
             FXMLLoader loader = new FXMLLoader(url);
             Parent root = loader.load();
-
-            // Los controladores ahora cargarán sus propios datos desde MongoDB
-            // No es necesario pasar la lista de productos
 
             Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
             stage.setScene(new Scene(root));
@@ -160,11 +167,13 @@ public class HelloController {
             LOGGER.info("✅ Vista cargada: " + titulo);
             
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error al cargar la vista: " + fxmlFile, e);
-            mostrarAlerta("Error", "No se pudo cargar la vista: " + fxmlFile + "\nError: " + e.getMessage(), AlertType.ERROR);
+            String errorMsg = "Error al cargar la vista: " + fxmlFile + " - " + e.getMessage();
+            LOGGER.log(Level.SEVERE, errorMsg, e);
+            mostrarAlerta("Error", errorMsg, AlertType.ERROR);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error inesperado al cambiar de ventana", e);
-            mostrarAlerta("Error", "Error inesperado al cambiar de ventana: " + e.getMessage(), AlertType.ERROR);
+            String errorMsg = "Error inesperado al cambiar de ventana: " + e.getMessage();
+            LOGGER.log(Level.SEVERE, errorMsg, e);
+            mostrarAlerta("Error", errorMsg, AlertType.ERROR);
         }
     }
 

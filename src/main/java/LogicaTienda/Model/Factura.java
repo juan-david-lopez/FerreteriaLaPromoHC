@@ -21,6 +21,7 @@ public class Factura implements Serializable {
     private Pago pago;
     private String clienteNombre;
     private String clienteIdentificacion;
+    private String tipoDocumento;
     private String clienteEmail;
     private String clienteTelefono;
     private String tipoFactura;

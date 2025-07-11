@@ -252,6 +252,12 @@ public class PagoController implements Initializable {
 
             TextField nombreField = new TextField();
             nombreField.setPromptText("Nombre completo");
+            
+            // ComboBox para tipo de documento
+            ComboBox<String> tipoDocCombo = new ComboBox<>();
+            tipoDocCombo.getItems().addAll("Cédula de ciudadanía", "Cédula de extranjería", "NIT", "Pasaporte", "Tarjeta de identidad");
+            tipoDocCombo.setValue("Cédula de ciudadanía");
+            
             TextField cedulaField = new TextField();
             cedulaField.setPromptText("Número de identificación");
             TextField emailField = new TextField();
@@ -262,12 +268,14 @@ public class PagoController implements Initializable {
             // Añadir campos al grid
             grid.add(new Label("Nombre completo:"), 0, 0);
             grid.add(nombreField, 1, 0);
-            grid.add(new Label("Identificación:"), 0, 1);
-            grid.add(cedulaField, 1, 1);
-            grid.add(new Label("Email:"), 0, 2);
-            grid.add(emailField, 1, 2);
-            grid.add(new Label("Teléfono:"), 0, 3);
-            grid.add(telefonoField, 1, 3);
+            grid.add(new Label("Tipo de documento:"), 0, 1);
+            grid.add(tipoDocCombo, 1, 1);
+            grid.add(new Label("Número de documento:"), 0, 2);
+            grid.add(cedulaField, 1, 2);
+            grid.add(new Label("Email:"), 0, 3);
+            grid.add(emailField, 1, 3);
+            grid.add(new Label("Teléfono:"), 0, 4);
+            grid.add(telefonoField, 1, 4);
 
             // Validar campos requeridos
             Node btnGenerar = dialog.getDialogPane().lookupButton(btnGenerarFactura);
@@ -285,12 +293,14 @@ public class PagoController implements Initializable {
 
             dialog.getDialogPane().setContent(grid);
 
-            // Convertir el resultado a un par de valores (nombre, cédula)
+            // Convertir el resultado a un objeto que contenga todos los datos del cliente
             dialog.setResultConverter(dialogButton -> {
                 if (dialogButton == btnGenerarFactura) {
                     return new Pair<>(
                         nombreField.getText().trim(),
-                        cedulaField.getText().trim()
+                        String.format("%s: %s", 
+                            tipoDocCombo.getValue(), 
+                            cedulaField.getText().trim())
                     );
                 }
                 return null;
@@ -302,13 +312,15 @@ public class PagoController implements Initializable {
             if (resultado.isPresent()) {
                 Pair<String, String> clienteData = resultado.get();
                 String nombreCliente = clienteData.getKey();
-                String cedulaCliente = clienteData.getValue();
+                String tipoYNumeroDoc = clienteData.getValue();
                 String emailCliente = emailField.getText().trim();
                 String telefonoCliente = telefonoField.getText().trim();
+                String tipoDocumento = tipoDocCombo.getValue();
+                String numeroDocumento = cedulaField.getText().trim();
 
-                // Validar formato de cédula
-                if (!cedulaCliente.matches("\\d+")) {
-                    showError("La cédula debe contener solo números");
+                // Validar formato del número de documento
+                if (!numeroDocumento.matches("^\\d+$")) {
+                    showError("El número de documento debe contener solo dígitos numéricos");
                     return;
                 }
 
@@ -320,7 +332,7 @@ public class PagoController implements Initializable {
                 Factura factura = new Factura();
                 factura.setId(UUID.randomUUID().toString().substring(0, 8));
                 factura.setClienteNombre(nombreCliente);
-                factura.setClienteIdentificacion(cedulaCliente);
+                factura.setClienteIdentificacion(String.format("%s: %s", tipoDocumento, numeroDocumento));
                 factura.setClienteEmail(emailCliente);
                 factura.setClienteTelefono(telefonoCliente);
                 factura.setProductos(productosFactura);
@@ -328,18 +340,20 @@ public class PagoController implements Initializable {
                 factura.setTotal(montoTotalCarrito);
                 factura.setMetodoPago(pago.getMetodoPago());
                 factura.setReferenciaPago(pago.getReferencia());
+                factura.setTipoDocumento(tipoDocumento);
                 
                 try {
                     // Guardar la factura en la base de datos
                     String facturaId = FacturaService.crearFactura(
                         productosFactura,
                         nombreCliente,
-                        cedulaCliente,
+                        numeroDocumento, // Solo el número de documento
                         montoTotalCarrito,
                         pago.getMetodoPago(),
                         pago.getReferencia(),
                         emailCliente,
-                        telefonoCliente
+                        telefonoCliente,
+                        tipoDocumento // Tipo de documento (ej: "Cédula de ciudadanía")
                     );
                     factura.setId(facturaId);
                     

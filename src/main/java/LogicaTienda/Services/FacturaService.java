@@ -34,7 +34,7 @@ public class FacturaService {
 
     public static String crearFactura(List<Productos> productos, String clienteNombre, String clienteIdentificacion, 
                                     double montoTotal, String metodoPago, String referenciaPago, 
-                                    String clienteEmail, String clienteTelefono) {
+                                    String clienteEmail, String clienteTelefono, String tipoDocumento) {
         String facturaId = UUID.randomUUID().toString().substring(0, 8);
         
         // Crear la factura con los productos
@@ -44,6 +44,7 @@ public class FacturaService {
         factura.setProductos(new ArrayList<>(productos));
         factura.setClienteNombre(clienteNombre);
         factura.setClienteIdentificacion(clienteIdentificacion);
+        factura.setTipoDocumento(tipoDocumento);
         factura.setClienteEmail(clienteEmail);
         factura.setClienteTelefono(clienteTelefono);
         factura.setTotal(montoTotal);
@@ -112,6 +113,7 @@ public class FacturaService {
         Bson update = Updates.combine(
             Updates.set("clienteNombre", factura.getClienteNombre()),
             Updates.set("clienteIdentificacion", factura.getClienteIdentificacion()),
+            Updates.set("tipoDocumento", factura.getTipoDocumento()),
             Updates.set("estado", factura.getEstado()),
             Updates.set("eliminada", factura.isEliminada()),
             Updates.set("fecha", factura.getFecha()),
