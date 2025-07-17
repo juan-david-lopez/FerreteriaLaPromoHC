@@ -5,11 +5,13 @@ import lombok.Setter;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 @Getter
 @Setter
 public class Productos implements Serializable {
+    @Serial
     private static final long serialVersionUID = 1L;
     
     @BsonProperty("_id")
@@ -64,7 +66,9 @@ public class Productos implements Serializable {
     }
 
     public void calcularPrecioVenta() {
-        this.precioParaVender = this.precio * (1 + (this.porcentajeGanancia / 100));
+        // Calcular el precio con decimales y luego redondear al entero más cercano
+        double precioConGanancia = this.precio * (1 + (this.porcentajeGanancia / 100));
+        this.precioParaVender = Math.round(precioConGanancia);
     }
     public String toString() {
         return "nombre del producto: "+this.nombre+" ID del producto: "+this.idProducto+" cantidad en almacen: "+this.stock+" el precio de costo: "+this.precio+" el precio de venta: "+this.precioParaVender;

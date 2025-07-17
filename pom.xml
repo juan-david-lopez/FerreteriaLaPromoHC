@@ -121,6 +121,7 @@
             <artifactId>fontawesomefx-fontawesome</artifactId>
             <version>4.7.0-9.1.2</version>
         </dependency>
+
         
         <!-- JavaFX Dependencies - Using version 23.0.1 to match existing dependencies -->
 
@@ -145,7 +146,18 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
-            
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>app.HelloApplication</mainClass> <!-- Cambia por tu clase main -->
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
             <!-- Plugin de JavaFX para Maven -->
             <plugin>
                 <groupId>org.openjfx</groupId>

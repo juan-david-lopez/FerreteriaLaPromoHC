@@ -5,67 +5,74 @@
 <?import javafx.scene.chart.CategoryAxis?>
 <?import javafx.scene.chart.NumberAxis?>
 <?import javafx.scene.chart.PieChart?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-<ScrollPane fitToWidth="true" fitToHeight="true"
-            vbarPolicy="ALWAYS" hbarPolicy="AS_NEEDED"
-            xmlns="http://javafx.com/javafx/23.0.1"
-            xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="org.tiendaGUI.Controllers.SimpleEstadisticasController">
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<ScrollPane fitToHeight="true" fitToWidth="true" hbarPolicy="AS_NEEDED" vbarPolicy="ALWAYS" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.tiendaGUI.Controllers.SimpleEstadisticasController">
     
     <VBox spacing="8" style="-fx-padding: 10; -fx-max-width: 1200; -fx-max-height: 800;" VBox.vgrow="ALWAYS">
         <!-- Título -->
-        <Label text="Estadísticas de Ventas" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;" />
+        <Label style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;" text="Estadísticas de Ventas" />
         
         <!-- Filtros de Fecha -->
-        <HBox spacing="8" alignment="CENTER_LEFT" style="-fx-padding: 3 0 3 0;">
-            <Label text="Rango de Fechas:" style="-fx-font-weight: bold;"/>
-            <DatePicker fx:id="dateInicio" promptText="Fecha Inicio"/>
-            <Label text="a"/>
-            <DatePicker fx:id="dateFin" promptText="Fecha Fin"/>
-            <Button text="Buscar" onAction="#onBuscarClick" style="-fx-background-color: #3498db; -fx-text-fill: white;"/>
-            <Button text="Hoy" onAction="#onHoyClick" style="-fx-background-color: #2ecc71; -fx-text-fill: white;"/>
+        <HBox alignment="CENTER_LEFT" spacing="8" style="-fx-padding: 3 0 3 0;">
+            <Label style="-fx-font-weight: bold;" text="Rango de Fechas:" />
+            <DatePicker fx:id="dateInicio" promptText="Fecha Inicio" />
+            <Label text="a" />
+            <DatePicker fx:id="dateFin" promptText="Fecha Fin" />
+            <Button onAction="#onBuscarClick" style="-fx-background-color: #3498db; -fx-text-fill: white;" text="Buscar" />
+            <Button onAction="#onHoyClick" style="-fx-background-color: #2ecc71; -fx-text-fill: white;" text="Hoy" />
         </HBox>
         
         <!-- Métricas Principales -->
-        <GridPane hgap="12" vgap="6" GridPane.hgrow="ALWAYS" style="-fx-padding: 0 0 5 0;">
+        <GridPane hgap="12" style="-fx-padding: 0 0 5 0;" vgap="6" GridPane.hgrow="ALWAYS">
             <columnConstraints>
-                <ColumnConstraints hgrow="ALWAYS" minWidth="200" prefWidth="300" halignment="CENTER"/>
-                <ColumnConstraints hgrow="ALWAYS" minWidth="200" prefWidth="300" halignment="CENTER"/>
+                <ColumnConstraints halignment="CENTER" hgrow="ALWAYS" minWidth="200" prefWidth="300" />
+                <ColumnConstraints halignment="CENTER" hgrow="ALWAYS" minWidth="200" prefWidth="300" />
             </columnConstraints>
             <rowConstraints>
-                <RowConstraints minHeight="100" vgrow="ALWAYS" valignment="TOP"/>
+                <RowConstraints minHeight="100" valignment="TOP" vgrow="ALWAYS" />
             </rowConstraints>
             
             <!-- Columna Izquierda -->
-            <VBox spacing="5" GridPane.columnIndex="0">
-                <Label text="Ventas Totales" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
-                <Label fx:id="lblTotalVentas" style="-fx-font-size: 24px; -fx-text-fill: #27ae60;"/>
+            <VBox prefHeight="192.0" prefWidth="294.0" spacing="2.0" GridPane.columnIndex="0">
+                <Label style="-fx-font-weight: bold; -fx-font-size: 16px;" text="Ventas Totales" />
+                <Label fx:id="lblTotalVentas" style="-fx-font-size: 24px; -fx-text-fill: #27ae60;" />
                 
-                <Label text="Valor Total del Inventario" style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-padding-top: 20;"/>
-                <Label fx:id="lblTotalInventario" style="-fx-font-size: 20px;"/>
+                <Label style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-padding-top: 20;" text="Valor Total del Inventario" />
+                <Label fx:id="lblTotalInventario" style="-fx-font-size: 20px;" />
                 
-                <Label text="Producto con Más Existencias" style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-padding-top: 20;"/>
-                <Label fx:id="lblProductoMasVendido" style="-fx-font-size: 16px;"/>
+                <Label prefHeight="26.0" prefWidth="229.0" style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-padding-top: 20;" text="Producto con Más Existencias" />
+                <Label fx:id="lblProductoMasVendido" style="-fx-font-size: 16px;" />
             </VBox>
             
             <!-- Columna Derecha -->
             <VBox spacing="5" GridPane.columnIndex="1">
-                <Label text="Resumen de Ventas" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
-                <Label fx:id="lblTotalFacturas" style="-fx-font-size: 16px;"/>
-                <Label fx:id="lblPromedioVenta" style="-fx-font-size: 16px;"/>
-                <Label fx:id="lblProductosVendidos" style="-fx-font-size: 16px; -fx-padding-top: 20;"/>
+                <Label style="-fx-font-weight: bold; -fx-font-size: 16px;" text="Resumen de Ventas" />
+                <Label fx:id="lblTotalFacturas" style="-fx-font-size: 16px;" />
+                <Label fx:id="lblPromedioVenta" style="-fx-font-size: 16px;" />
+                <Label fx:id="lblProductosVendidos" style="-fx-font-size: 16px; -fx-padding-top: 20;" />
             </VBox>
         </GridPane>
         
-        <!-- Gráficos -->
-        <TabPane tabClosingPolicy="UNAVAILABLE" tabMinWidth="100" tabMaxWidth="200" style="-fx-padding: 5 0 0 0;">
+              <!-- Gráficos -->
+        <TabPane style="-fx-padding: 5 0 0 0;" tabClosingPolicy="UNAVAILABLE" tabMaxWidth="200" tabMinWidth="100">
             <Tab text="Ventas por Día">
                 <VBox spacing="10" style="-fx-padding: 10;">
-                    <BarChart fx:id="graficoBarras" title="Ventas por Día" legendVisible="false" animated="false" 
-                              VBox.vgrow="SOMETIMES" style="-fx-min-width: 800; -fx-min-height: 250; -fx-pref-height: 300; -fx-max-width: 1200;">
+                    <BarChart fx:id="graficoBarras" animated="false" legendVisible="false" style="-fx-min-width: 800; -fx-min-height: 250; -fx-pref-height: 300; -fx-max-width: 1200;" title="Ventas por Día" VBox.vgrow="SOMETIMES">
                         <xAxis>
-                            <CategoryAxis label="Fecha" tickLabelRotation="45" tickLabelGap="10" />
+                            <CategoryAxis label="Fecha" tickLabelGap="10" tickLabelRotation="45" />
                         </xAxis>
                         <yAxis>
                             <NumberAxis label="Monto ($)" style="-fx-tick-label-font-size: 10;" />
@@ -75,29 +82,27 @@
             </Tab>
             <Tab text="Distribución de Ventas">
                 <VBox spacing="5" style="-fx-padding: 5;" VBox.vgrow="ALWAYS">
-                    <PieChart fx:id="graficoPastel" title="Productos más Vendidos" 
-                             VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS"
-                             style="-fx-min-width: 500; -fx-min-height: 250; -fx-pref-height: 300; -fx-max-height: 400;"/>
+                    <PieChart fx:id="graficoPastel" style="-fx-min-width: 500; -fx-min-height: 250; -fx-pref-height: 300; -fx-max-height: 400;" title="Productos más Vendidos" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS" />
                 </VBox>
             </Tab>
         </TabPane>
         
         <!-- Tabla de Productos -->
         <VBox spacing="3" style="-fx-padding: 5 0 0 0;">
-            <Label text="Productos en Inventario" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
-            <TableView fx:id="tablaProductos" VBox.vgrow="SOMETIMES" style="-fx-max-height: 150; -fx-pref-height: 150; -fx-min-height: 100;">
+            <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Productos en Inventario" />
+            <TableView fx:id="tablaProductos" style="-fx-max-height: 150; -fx-pref-height: 150; -fx-min-height: 100;" VBox.vgrow="SOMETIMES">
                 <columns>
-                    <TableColumn fx:id="colProducto" text="Producto" prefWidth="300"/>
-                    <TableColumn fx:id="colCantidad" text="Existencias" prefWidth="100"/>
-                    <TableColumn fx:id="colValor" text="Valor Total" prefWidth="150"/>
+                    <TableColumn fx:id="colProducto" prefWidth="300" text="Producto" />
+                    <TableColumn fx:id="colCantidad" prefWidth="100" text="Existencias" />
+                    <TableColumn fx:id="colValor" prefWidth="150" text="Valor Total" />
                 </columns>
             </TableView>
         </VBox>
         
         <HBox alignment="CENTER">
-            <Button text="Volver" onAction="#onVolverClick" style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-pref-width: 100; -fx-pref-height: 30;" styleClass="button-volver">
+            <Button onAction="#onVolverClick" style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-pref-width: 100; -fx-pref-height: 30;" styleClass="button-volver" text="Volver">
                 <padding>
-                    <Insets top="5.0" right="10.0" bottom="5.0" left="10.0" />
+                    <Insets bottom="5.0" left="10.0" right="10.0" top="5.0" />
                 </padding>
             </Button>
         </HBox>
