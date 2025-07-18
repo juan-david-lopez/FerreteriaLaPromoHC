@@ -45,7 +45,7 @@ public class HelloController {
     private void cargarImagen() {
         try {
             // Cargar la imagen desde los recursos
-            String imagePath = "/images/LogoFerreteria.png";
+            String imagePath = "/org/tiendaGUI/images/LogoFerreteria.png";
             LOGGER.info("🔍 Intentando cargar imagen desde ruta: " + imagePath);
             
             // Obtener la URL del recurso para propósitos de depuración
