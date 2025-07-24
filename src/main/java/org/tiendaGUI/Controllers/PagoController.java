@@ -18,8 +18,6 @@ import java.awt.Desktop;
 import LogicaTienda.Services.ProductoService;
 
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
 import javafx.scene.control.cell.TextFieldTableCell;
 import org.tiendaGUI.DTO.CarritoDTO;
 import javax.swing.*;
@@ -33,7 +31,6 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -42,7 +39,6 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import org.tiendaGUI.utils.PDFGenerator;
 
-import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -140,31 +136,49 @@ public class PagoController implements Initializable {
                 showError("Debe ingresar un monto"); 
                 return; 
             }
-            
+
             double ingresado = Double.parseDouble(text);
             if (ingresado < montoTotalCarrito) { 
                 showError("Monto insuficiente"); 
                 return; 
             }
-            
+
             String metodo = metodoPagoCombo.getValue();
             if (!"Efectivo".equals(metodo) && referenciaField.getText().trim().isEmpty()) {
                 showError("Referencia requerida para " + metodo); 
                 return;
             }
-            
+
             double cambio = ingresado - montoTotalCarrito;
 
-            // Registrar el pago y actualizar el inventario
-            Pago pago = registrarPago(ingresado, cambio);
+            // Preguntar si es cotización o pago
+            int opcion = JOptionPane.showOptionDialog(
+                null,
+                "¿Desea generar una cotización o realizar el pago?",
+                "Seleccione una opción",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                new Object[]{"Cotización", "Pago"},
+                "Pago"
+            );
+
+            boolean esCotizacion = (opcion == 0); // 0 = Cotización, 1 = Pago
+
+            // Registrar el pago y actualizar el inventario (solo si no es cotización)
+            Pago pago = registrarPago(ingresado, cambio, esCotizacion);
 
             // Crear factura con diálogo
-            crearFacturaConDialogo(pago);
-            
+            crearFacturaConDialogo(pago, esCotizacion);
+
             // Mostrar mensaje de éxito
-            showInfo(String.format("Pago correcto: pagó $%.2f, cambio $%.2f", ingresado, cambio));
-            limpiarCampos();
-            
+            if (!esCotizacion) {
+                showInfo(String.format("Pago correcto: pagó $%.2f, cambio $%.2f", ingresado, cambio));
+                limpiarCampos();
+            } else {
+                showInfo("Cotización generada correctamente");
+            }
+
         } catch (NumberFormatException e) {
             showError("Por favor ingrese un monto válido");
             LOGGER.log(Level.WARNING, "Formato de monto inválido", e);
@@ -190,11 +204,15 @@ public class PagoController implements Initializable {
             Stage s = (Stage)((Node)event.getSource()).getScene().getWindow();
             s.setScene(new Scene(root)); s.setTitle("Carrito de Compras"); s.show();
         } catch (IOException e) {
-            e.printStackTrace(); showError("No se pudo volver al carrito");
+            LOGGER.log(Level.SEVERE, "Error al volver a la pantalla de carrito", e);
         }
     }
 
     private Pago registrarPago(double montoPagado, double cambio) {
+        return registrarPago(montoPagado, cambio, false);
+    }
+
+    private Pago registrarPago(double montoPagado, double cambio, boolean esCotizacion) {
         try {
             String idPago = UUID.randomUUID().toString().substring(0,8);
             String fecha = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
@@ -202,46 +220,48 @@ public class PagoController implements Initializable {
             String ref = "Efectivo".equals(metodo)
                     ? String.format("Pagado $%.2f, cambio $%.2f", montoPagado, cambio)
                     : referenciaField.getText().trim();
-            
+
             // Crear el pago
             Pago pago = new Pago(idPago, montoTotalCarrito, metodo, fecha, "Completado", ref);
-            
-            // Actualizar el inventario para cada producto en el carrito
-            for (Productos producto : carritoDTO.getProductos()) {
-                try {
-                    ProductoService.actualizarStock(
-                        producto.getIdProducto(),
-                        producto.getCantidad(),
-                        false // false para restar del stock
-                    );
-                } catch (Exception e) {
-                    LOGGER.log(Level.SEVERE, "Error al actualizar el stock del producto: " + producto.getIdProducto(), e);
-                    throw new RuntimeException("Error al actualizar el inventario: " + e.getMessage(), e);
+
+            // Actualizar el inventario para cada producto en el carrito (solo si no es cotización)
+            if (!esCotizacion) {
+                for (Productos producto : carritoDTO.getProductos()) {
+                    try {
+                        ProductoService.actualizarStock(
+                            producto.getIdProducto(),
+                            producto.getCantidad(),
+                            false // false para restar del stock
+                        );
+                    } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "Error al actualizar el stock del producto: " + producto.getIdProducto(), e);
+                        throw new RuntimeException("Error al actualizar el inventario: " + e.getMessage(), e);
+                    }
                 }
             }
-            
+
             // Actualizar la tabla de pagos
             if (tablaPagos.getItems() != null) {
                 tablaPagos.getItems().add(pago);
                 tablaPagos.refresh();
             }
-            
+
             return pago;
-            
+
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error al registrar el pago", e);
             throw new RuntimeException("Error al registrar el pago: " + e.getMessage(), e);
         }
     }
-    public void crearFacturaConDialogo(Pago pago) {
+    public void crearFacturaConDialogo(Pago pago, boolean esCotizacion) {
         try {
             // Crear diálogo para ingresar los datos del cliente
             Dialog<Pair<String, String>> dialog = new Dialog<>();
             dialog.setTitle("Datos del Cliente");
-            dialog.setHeaderText("Ingrese los datos del cliente para la factura");
+            dialog.setHeaderText("Ingrese los datos del cliente para la " + (esCotizacion ? "cotización" : "factura"));
 
             // Configurar los botones
-            ButtonType btnGenerarFactura = new ButtonType("Generar Factura", ButtonBar.ButtonData.OK_DONE);
+            ButtonType btnGenerarFactura = new ButtonType(esCotizacion ? "Generar Cotización" : "Generar Factura", ButtonBar.ButtonData.OK_DONE);
             dialog.getDialogPane().getButtonTypes().addAll(btnGenerarFactura, ButtonType.CANCEL);
 
             // Crear los campos del formulario
@@ -252,12 +272,12 @@ public class PagoController implements Initializable {
 
             TextField nombreField = new TextField();
             nombreField.setPromptText("Nombre completo");
-            
+
             // ComboBox para tipo de documento
             ComboBox<String> tipoDocCombo = new ComboBox<>();
             tipoDocCombo.getItems().addAll("Cédula de ciudadanía", "Cédula de extranjería", "NIT", "Pasaporte", "Tarjeta de identidad");
             tipoDocCombo.setValue("Cédula de ciudadanía");
-            
+
             TextField cedulaField = new TextField();
             cedulaField.setPromptText("Número de identificación");
             TextField emailField = new TextField();
@@ -308,7 +328,7 @@ public class PagoController implements Initializable {
 
             // Mostrar diálogo y procesar resultado
             Optional<Pair<String, String>> resultado = dialog.showAndWait();
-            
+
             if (resultado.isPresent()) {
                 Pair<String, String> clienteData = resultado.get();
                 String nombreCliente = clienteData.getKey();
@@ -327,7 +347,7 @@ public class PagoController implements Initializable {
 
                 // Crear la factura en MongoDB
                 List<Productos> productosFactura = new ArrayList<>(carritoDTO.getProductos());
-                
+
                 // Crear la factura
                 Factura factura = new Factura();
                 factura.setId(UUID.randomUUID().toString().substring(0, 8));
@@ -341,7 +361,8 @@ public class PagoController implements Initializable {
                 factura.setMetodoPago(pago.getMetodoPago());
                 factura.setReferenciaPago(pago.getReferencia());
                 factura.setTipoDocumento(tipoDocumento);
-                
+                factura.setTipoFactura(esCotizacion ? "Cotizacion" : "Impresa");
+
                 try {
                     // Guardar la factura en la base de datos
                     String facturaId = FacturaService.crearFactura(
@@ -353,26 +374,23 @@ public class PagoController implements Initializable {
                         pago.getReferencia(),
                         emailCliente,
                         telefonoCliente,
-                        tipoDocumento // Tipo de documento (ej: "Cédula de ciudadanía")
+                        tipoDocumento, // Tipo de documento (ej: "Cédula de ciudadanía")
+                        esCotizacion ? "Cotizacion" : "Impresa" // Tipo de factura
                     );
                     factura.setId(facturaId);
-                    
+
                     try {
                         // Generar PDF de la factura
                         PDFGenerator.generarFacturaPDF(factura);
-                        
-                        // Mostrar mensaje de éxito con opción para abrir la factura
-                        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                        alert.setTitle("Factura Generada");
-                        alert.setHeaderText("¡Factura generada exitosamente!");
-                        alert.setContentText(String.format("Número de factura: %s\nCliente: %s\nTotal: $%,.2f", 
-                            facturaId, nombreCliente, montoTotalCarrito));
-                        
-                        // Agregar botón para abrir la factura
-                        ButtonType btnAbrirFactura = new ButtonType("Abrir Factura", ButtonBar.ButtonData.YES);
+
+                        // Mostrar mensaje de éxito con opción para abrir la factura o cotización
+                        Alert alert = getAlert(esCotizacion, facturaId, nombreCliente);
+
+                        // Agregar botón para abrir la factura o cotización
+                        ButtonType btnAbrirFactura = new ButtonType("Abrir " + (esCotizacion ? "Cotización" : "Factura"), ButtonBar.ButtonData.YES);
                         ButtonType btnCerrar = new ButtonType("Cerrar", ButtonBar.ButtonData.CANCEL_CLOSE);
                         alert.getButtonTypes().setAll(btnAbrirFactura, btnCerrar);
-                        
+
                         // Mostrar diálogo y manejar la respuesta
                         Optional<ButtonType> result = alert.showAndWait();
                         if (result.isPresent() && result.get() == btnAbrirFactura) {
@@ -382,8 +400,9 @@ public class PagoController implements Initializable {
                             if (!downloads.exists() || !downloads.isDirectory()) {
                                 downloads = new File(userHome, "Descargas");
                             }
-                            File pdfFile = new File(downloads, "FACTURA_" + facturaId + ".pdf");
-                            
+                            String fileName = esCotizacion ? "COTIZACION_" + facturaId + ".pdf" : "FACTURA_" + facturaId + ".pdf";
+                            File pdfFile = new File(downloads, fileName);
+
                             if (pdfFile.exists()) {
                                 try {
                                     Desktop.getDesktop().open(pdfFile);
@@ -393,11 +412,20 @@ public class PagoController implements Initializable {
                                 }
                             }
                         }
-                        
-                        // Limpiar el carrito después del pago exitoso
-                        carritoDTO.getProductos().clear();
-                        carritoDTO.actualizarTotal();
-                        
+
+                        // Limpiar el carrito después del pago exitoso (solo si no es cotización)
+                        if (!esCotizacion) {
+                            carritoDTO.getProductos().clear();
+                            carritoDTO.actualizarTotal();
+                        } else {
+                            // Si es una cotización, devolver los productos al inventario
+                            // ya que no es una venta efectiva
+                            for (Productos producto : productosFactura) {
+                                ProductoService.actualizarStock(producto.getIdProducto(), producto.getCantidad(), false);
+                            }
+                            LOGGER.info("Productos de cotización devueltos al inventario");
+                        }
+
                     } catch (IOException ioEx) {
                         LOGGER.log(Level.SEVERE, "Error al generar el PDF de la factura", ioEx);
                         showError(String.format(
@@ -405,7 +433,7 @@ public class PagoController implements Initializable {
                             facturaId, ioEx.getMessage()
                         ));
                     }
-                    
+
                 } catch (Exception e) {
                     LOGGER.log(Level.SEVERE, "Error al crear la factura", e);
                     showError("Error al generar la factura: " + e.getMessage());
@@ -416,10 +444,20 @@ public class PagoController implements Initializable {
             showError("Error inesperado: " + e.getMessage());
         }
     }
+
+    private Alert getAlert(boolean esCotizacion, String facturaId, String nombreCliente) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(esCotizacion ? "Cotización Generada" : "Factura Generada");
+        alert.setHeaderText(esCotizacion ? "¡Cotización generada exitosamente!" : "¡Factura generada exitosamente!");
+        alert.setContentText(String.format("Número de %s: %s\nCliente: %s\nTotal: $%,.2f",
+            esCotizacion ? "cotización" : "factura", facturaId, nombreCliente, montoTotalCarrito));
+        return alert;
+    }
+
     private void actualizarCambio(double ingresado) {
         double dif = ingresado - montoTotalCarrito;
         lblCambio.setText(String.format(dif>=0?"Cambio: $%.2f":"Falta: $%.2f", Math.abs(dif)));
-        lblCambio.setStyle(dif>=0?"-fx-text-fill:green":"-fx-text-fill:red");
+        lblCambio.setStyle(dif>=0?"":"-fx-text-fill:red");
         new FadeTransition(Duration.millis(200), lblCambio).play();
     }
 
@@ -448,19 +486,7 @@ public class PagoController implements Initializable {
         try {
             // Obtener la ruta de la carpeta de Descargas
             String userHome = System.getProperty("user.home");
-            File downloadsDir = new File(userHome, "Downloads");
-            
-            // Si no existe la carpeta Downloads, intentar con Descargas (español)
-            if (!downloadsDir.exists() || !downloadsDir.isDirectory()) {
-                downloadsDir = new File(userHome, "Descargas");
-                // Si tampoco existe, crear la carpeta
-                if (!downloadsDir.exists()) {
-                    boolean created = downloadsDir.mkdirs();
-                    if (!created) {
-                        throw new IOException("No se pudo crear la carpeta de descargas");
-                    }
-                }
-            }
+            File downloadsDir = getFile(userHome);
 
             // Crear el nombre del archivo con timestamp
             String timeStamp = java.time.LocalDateTime.now().format(
@@ -474,7 +500,7 @@ public class PagoController implements Initializable {
 
             // Mostrar mensaje de éxito con la ruta del archivo
             mostrarAlerta("✅ Success", "✅ Factura descargada exitosamente en: " + pdfFile.getAbsolutePath(), Alert.AlertType.INFORMATION);
-            
+
             // Abrir el archivo automáticamente si es posible
             if (Desktop.isDesktopSupported()) {
                 try {
@@ -484,9 +510,25 @@ public class PagoController implements Initializable {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
             mostrarAlerta("❌ Error","❌ Error al guardar la factura: " + e.getMessage(), Alert.AlertType.ERROR);
         }
+    }
+
+    private File getFile(String userHome) throws IOException {
+        File downloadsDir = new File(userHome, "Downloads");
+
+        // Si no existe la carpeta Downloads, intentar con Descargas (español)
+        if (!downloadsDir.exists() || !downloadsDir.isDirectory()) {
+            downloadsDir = new File(userHome, "Descargas");
+            // Si tampoco existe, crear la carpeta
+            if (!downloadsDir.exists()) {
+                boolean created = downloadsDir.mkdirs();
+                if (!created) {
+                    throw new IOException("No se pudo crear la carpeta de descargas");
+                }
+            }
+        }
+        return downloadsDir;
     }
 
     private Factura obtenerFacturaDesdePagoSeleccionado() {
@@ -502,12 +544,12 @@ public class PagoController implements Initializable {
             // Si hay una relación diferente, deberías ajustar este código
             // para buscar por el campo correcto en la colección de facturas
             Factura factura = FacturaService.buscarFacturaPorId(pago.getId());
-            
+
             if (factura == null) {
                 LOGGER.warning("No se encontró factura para el pago con ID: " + pago.getId());
             }
             return factura;
-            
+
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error al buscar factura para el pago con ID: " + pago.getId(), e);
             return null;

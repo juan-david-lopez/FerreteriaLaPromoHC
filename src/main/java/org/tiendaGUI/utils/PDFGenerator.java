@@ -10,6 +10,7 @@ import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Cell;
+import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.LineSeparator;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
@@ -17,6 +18,7 @@ import com.itextpdf.layout.properties.HorizontalAlignment;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import com.itextpdf.kernel.pdf.canvas.draw.SolidLine;
+import com.itextpdf.io.image.ImageDataFactory;
 
 import java.awt.Desktop;
 import java.io.File;
@@ -49,7 +51,7 @@ public class PDFGenerator {
         if (!downloads.exists() || !downloads.isDirectory()) {
             downloads = new File(userHome, "Descargas"); // Linux en español
         }
-        
+
         // Crear directorio de descargas si no existe
         if ((!downloads.exists() || !downloads.isDirectory()) && !downloads.mkdirs()) {
             throw new IOException("No se pudo crear el directorio de descargas: " + downloads.getAbsolutePath());
@@ -58,7 +60,7 @@ public class PDFGenerator {
         // Crear archivo de salida
         String fileName = "FACTURA_" + (factura.getId() != null ? factura.getId() : "SIN_ID") + ".pdf";
         File file = new File(downloads, fileName);
-        
+
         // Verificar si el archivo ya existe
         if (file.exists()) {
             throw new IOException("El archivo ya existe: " + file.getAbsolutePath());
@@ -68,7 +70,7 @@ public class PDFGenerator {
         PdfWriter writer = null;
         PdfDocument pdf = null;
         Document document = null;
-        
+
         try {
             // Crear escritor, pdf y documento
             writer = new PdfWriter(file.getAbsolutePath());
@@ -83,7 +85,16 @@ public class PDFGenerator {
             // Encabezado
             Table header = new Table(2).useAllAvailableWidth();
 
+            // Cargar logo
+            String logoPath = PDFGenerator.class.getResource("/org/tiendaGUI/images/LogoFerreteria.png").getPath();
+            Image logo = new Image(ImageDataFactory.create(logoPath))
+                    .setWidth(100)
+                    .setHorizontalAlignment(HorizontalAlignment.LEFT);
+
             // Información de la empresa
+            Cell empresaCell = new Cell().setBorder(null);
+            empresaCell.add(logo);
+
             Paragraph empresa = new Paragraph()
                     .add("FERRETERÍA LA PROMO H&C\n").setFont(fontBold).setFontSize(16).setFontColor(COLOR_ACCENT)
                     .add(" LAURA YAMILE HERNANDEZ \n").setFont(fontBold).setFontSize(16).setFontColor(COLOR_ACCENT)
@@ -94,18 +105,49 @@ public class PDFGenerator {
                     .add("Teléfono: 323 3934257\n").setFont(fontNormal).setFontSize(10)
                     .add("Email: juanlopezcastillooo@gmail.com").setFont(fontNormal).setFontSize(10);
 
-            header.addCell(new Cell().add(empresa).setBorder(null));
+            empresaCell.add(empresa);
+            header.addCell(empresaCell);
 
             // Información de la factura
             String fechaStr = factura.getFecha() != null
                     ? factura.getFecha().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
                     : "Fecha no disponible";
-                    
+
             String facturaId = factura.getId() != null ? factura.getId() : "SIN_ID";
 
+            // Determinar el tipo de documento (factura o cotización)
+            String tipoDocumento = "FACTURA DE VENTA";
+            String prefijo = "No. ";
+
+            if (factura.getTipoFactura() != null && factura.getTipoFactura().equals("Cotizacion")) {
+                tipoDocumento = "COTIZACIÓN";
+                prefijo = "Cotización No. ";
+                // Si es una cotización, cambiar el nombre del archivo
+                fileName = "COTIZACION_" + (factura.getId() != null ? factura.getId() : "SIN_ID") + ".pdf";
+                file = new File(downloads, fileName);
+
+                // Verificar si el archivo ya existe
+                if (file.exists()) {
+                    throw new IOException("El archivo ya existe: " + file.getAbsolutePath());
+                }
+
+                // Actualizar el writer y el documento
+                if (writer != null) {
+                    try {
+                        writer.close();
+                    } catch (Exception ex) {
+                        // Ignorar error al cerrar
+                    }
+                }
+                writer = new PdfWriter(file.getAbsolutePath());
+                pdf = new PdfDocument(writer);
+                document = new Document(pdf, PageSize.A4);
+                document.setMargins(40, 36, 36, 36);
+            }
+
             Paragraph facturaInfo = new Paragraph()
-                    .add("FACTURA DE VENTA\n").setFont(fontBold).setFontSize(16).setFontColor(COLOR_ACCENT)
-                    .add("No. " + facturaId + "\n").setFont(fontBold).setFontSize(12)
+                    .add(tipoDocumento + "\n").setFont(fontBold).setFontSize(16).setFontColor(COLOR_ACCENT)
+                    .add(prefijo + facturaId + "\n").setFont(fontBold).setFontSize(12)
                     .add("Fecha: " + fechaStr).setFont(fontNormal).setFontSize(10);
 
             header.addCell(new Cell().add(facturaInfo).setBorder(null).setTextAlignment(TextAlignment.RIGHT));
@@ -118,16 +160,16 @@ public class PDFGenerator {
 
             Table clientTable = new Table(UnitValue.createPercentArray(new float[]{1, 2}));
             clientTable.setWidth(UnitValue.createPercentValue(60));
-            
+
             // Validar y mostrar información del cliente
             String clienteNombre = factura.getClienteNombre() != null ? factura.getClienteNombre() : "No especificado";
             String clienteId = factura.getClienteIdentificacion() != null ? factura.getClienteIdentificacion() : "No especificada";
-            
+
             clientTable.addCell(createCell("Nombre:", fontBold, 10, null, TextAlignment.LEFT));
             clientTable.addCell(createCell(clienteNombre, fontNormal, 10, null, TextAlignment.LEFT));
             clientTable.addCell(createCell("Identificación:", fontBold, 10, null, TextAlignment.LEFT));
             clientTable.addCell(createCell(clienteId, fontNormal, 10, null, TextAlignment.LEFT));
-            
+
             document.add(clientTable);
             document.add(new Paragraph("\n"));
 
@@ -138,7 +180,7 @@ public class PDFGenerator {
             float[] colWidths = {3, 1, 1.5f, 1.5f};
             Table productsTable = new Table(colWidths);
             productsTable.setWidth(UnitValue.createPercentValue(100));
-            
+
             // Encabezados de la tabla
             String[] headers = {"DESCRIPCIÓN", "CANT.", "V. UNITARIO", "TOTAL"};
             for (String h : headers) {
@@ -162,11 +204,11 @@ public class PDFGenerator {
             } else {
                 // Calcular totales
                 double subtotal = 0;
-                
+
                 // Agregar cada producto a la tabla
                 for (Productos p : productos) {
                     if (p == null) continue;
-                    
+
                     String nombre = p.getNombre() != null ? p.getNombre() : "Producto sin nombre";
                     int cantidad = Math.max(0, p.getCantidad());
                     double valorUnitario = p.getPrecioParaVender();
@@ -178,14 +220,14 @@ public class PDFGenerator {
                     productsTable.addCell(createCell(formatMoney(valorUnitario), fontNormal, 9, null, TextAlignment.RIGHT));
                     productsTable.addCell(createCell(formatMoney(total), fontNormal, 9, null, TextAlignment.RIGHT));
                 }
-                
+
                 // Agregar fila de subtotal
                 productsTable.addCell(new Cell(1, 3)
                     .add(new Paragraph("SUBTOTAL:")
                         .setFont(fontBold)
                         .setTextAlignment(TextAlignment.RIGHT)));
                 productsTable.addCell(createCell(formatMoney(subtotal), fontBold, 10, null, TextAlignment.RIGHT));
-                
+
                 // Agregar fila de IVA (opcional)
                 // double iva = subtotal * 0.19; // 19% de IVA
                 // productsTable.addCell(new Cell(1, 3)
@@ -193,7 +235,7 @@ public class PDFGenerator {
                 //         .setFont(fontBold)
                 //         .setTextAlignment(TextAlignment.RIGHT)));
                 // productsTable.addCell(createCell(formatMoney(iva), fontNormal, 10, null, TextAlignment.RIGHT));
-                
+
                 // Agregar fila de total
                 double totalFactura = subtotal; // + iva;
                 productsTable.addCell(new Cell(1, 3)
@@ -205,10 +247,16 @@ public class PDFGenerator {
             }
 
             document.add(productsTable);
-            
-            // Agregar mensaje de agradecimiento
+
+            // Agregar mensaje de agradecimiento o mensaje de cotización
             document.add(new Paragraph("\n"));
-            document.add(new Paragraph("¡Gracias por su compra!")
+
+            String mensaje = "¡Gracias por su compra!";
+            if (factura.getTipoFactura() != null && factura.getTipoFactura().equals("Cotizacion")) {
+                mensaje = "Esta cotización tiene una validez de 15 días a partir de la fecha de emisión.";
+            }
+
+            document.add(new Paragraph(mensaje)
                 .setFont(fontNormal)
                 .setFontSize(10)
                 .setTextAlignment(TextAlignment.CENTER)
@@ -221,21 +269,26 @@ public class PDFGenerator {
 
             String fechaGeneracion = java.time.LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
-                
+
+            String tipoDoc = "Factura";
+            if (factura.getTipoFactura() != null && factura.getTipoFactura().equals("Cotizacion")) {
+                tipoDoc = "Cotización";
+            }
+
             Paragraph footer = new Paragraph()
                     .add("FERRETERÍA LA PROMO - NIT: 37749393-1\n")
                     .add("Dirección: Manzana 27 #casa 16 local 1, Armenia - Teléfono: 323 3934257\n")
                     .add("Email: juanlopezcastillooo@gmail.com - " + 
-                         "Factura generada el " + fechaGeneracion)
+                         tipoDoc + " generada el " + fechaGeneracion)
                     .setFont(fontNormal)
                     .setFontSize(8)
                     .setTextAlignment(TextAlignment.CENTER);
 
             document.add(footer);
-            
+
             // Cerrar documento
             document.close();
-            
+
             // Confirmación de creación
             System.out.println("✅ Factura PDF generada exitosamente en: " + file.getAbsolutePath());
 
@@ -252,14 +305,14 @@ public class PDFGenerator {
                     // Ignorar error al cerrar
                 }
             }
-            
+
             // Eliminar archivo parcial si existe
             if (file != null && file.exists()) {
                 if (!file.delete()) {
                     System.err.println("⚠️ No se pudo eliminar el archivo temporal: " + file.getAbsolutePath());
                 }
             }
-            
+
             // Relanzar la excepción para que el llamador pueda manejarla
             throw new IOException("Error al generar el PDF: " + e.getMessage(), e);
         }
@@ -281,19 +334,19 @@ public class PDFGenerator {
         Paragraph p = new Paragraph(text)
                 .setFont(font)
                 .setFontSize(fontSize);
-        
+
         Cell cell = new Cell()
                 .add(p)
                 .setBorder(null);
-                
+
         if (alignment != null) {
             cell.setTextAlignment(alignment);
         }
-        
+
         if (backgroundColor != null) {
             cell.setBackgroundColor(backgroundColor);
         }
-        
+
         return cell;
     }
 

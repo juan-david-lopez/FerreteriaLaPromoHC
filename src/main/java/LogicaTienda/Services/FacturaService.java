@@ -34,9 +34,9 @@ public class FacturaService {
 
     public static String crearFactura(List<Productos> productos, String clienteNombre, String clienteIdentificacion, 
                                     double montoTotal, String metodoPago, String referenciaPago, 
-                                    String clienteEmail, String clienteTelefono, String tipoDocumento) {
+                                    String clienteEmail, String clienteTelefono, String tipoDocumento, String tipoFactura) {
         String facturaId = UUID.randomUUID().toString().substring(0, 8);
-        
+
         // Crear la factura con los productos
         Factura factura = new Factura();
         factura.setId(facturaId);
@@ -50,17 +50,18 @@ public class FacturaService {
         factura.setTotal(montoTotal);
         factura.setMetodoPago(metodoPago);
         factura.setReferenciaPago(referenciaPago);
+        factura.setTipoFactura(tipoFactura);
         factura.setEliminada(false);
         factura.setEstado("Activa");
-        
+
         // Guardar la factura
         facturasCollection.insertOne(factura);
-        
+
         // Actualizar el inventario
         for (Productos producto : productos) {
             ProductoService.actualizarStock(producto.getIdProducto(), producto.getCantidad(), true);
         }
-        
+
         return facturaId;
     }
 
@@ -68,7 +69,7 @@ public class FacturaService {
         Bson filter = Filters.eq("id", idFactura);
         Bson update = Updates.set("eliminada", true);
         facturasCollection.updateOne(filter, update);
-        
+
         // Devolver productos al inventario
         Factura factura = buscarFacturaPorId(idFactura);
         if (factura != null) {
@@ -82,7 +83,7 @@ public class FacturaService {
         Bson filter = Filters.eq("id", idFactura);
         Bson update = Updates.set("eliminada", false);
         facturasCollection.updateOne(filter, update);
-        
+
         // Volver a descontar los productos del inventario
         Factura factura = buscarFacturaPorId(idFactura);
         if (factura != null) {
@@ -99,7 +100,7 @@ public class FacturaService {
                 .mapToDouble(p -> p.getPrecioParaVender() * p.getCantidad())
                 .sum();
     }
-    
+
     /**
      * Actualiza una factura existente en la base de datos
      * @param factura La factura con los datos actualizados
@@ -108,18 +109,19 @@ public class FacturaService {
         if (factura == null || factura.getId() == null) {
             throw new IllegalArgumentException("La factura y su ID no pueden ser nulos");
         }
-        
+
         Bson filter = Filters.eq("id", factura.getId());
         Bson update = Updates.combine(
             Updates.set("clienteNombre", factura.getClienteNombre()),
             Updates.set("clienteIdentificacion", factura.getClienteIdentificacion()),
             Updates.set("tipoDocumento", factura.getTipoDocumento()),
+            Updates.set("tipoFactura", factura.getTipoFactura()),
             Updates.set("estado", factura.getEstado()),
             Updates.set("eliminada", factura.isEliminada()),
             Updates.set("fecha", factura.getFecha()),
             Updates.set("productos", factura.getProductos())
         );
-        
+
         facturasCollection.updateOne(filter, update);
     }
 }
